@@ -11,7 +11,7 @@ class Guillotine:
         self.config=config
         self.parameters=ConfigParser.RawConfigParser()
         self.parameters.read(config[1])
-        if len(self.config)>1:
+        if len(self.config)>2:
             self.option=self.config[2]
         else:
             self.option='default'
