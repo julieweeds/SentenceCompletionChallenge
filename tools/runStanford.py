@@ -1,6 +1,8 @@
 __author__ = 'juliewe'
 
 import ConfigParser,sys,os,ast,subprocess,datetime
+import xml.etree.cElementTree as ET
+
 
 def current_time():
     return datetime.datetime.ctime(datetime.datetime.now())
@@ -16,6 +18,7 @@ class PythonParser:
         self.options=ast.literal_eval(self.config.get('default','options'))
         self.outext=self.config.get('default','outextension')
         self.output_dir = self.data_dir+'-'+self.outext
+        #self.conll_dir=self.output_dir+'-conll'
         self.testinglevel=self.config.get('default','testinglevel')
 
     def _make_filelist_and_create_files(self, data_dir, filelistpath, output_dir):
@@ -74,7 +77,7 @@ class PythonParser:
             stanford_cmd = ['./corenlp.sh',
                             '-annotators',optionstring,
                             '-filelist',filelist,
-                            'outputDirectory',output_sub_dir,
+                            '-outputDirectory',output_sub_dir,
                             '-threads', str(self.java_threads),
                             '-outputFormat','xml',
                             '-outputExtension',ext]
@@ -84,9 +87,74 @@ class PythonParser:
             print "<%s> Stanford complete for path: %s" %(current_time(),output_sub_dir)
         print "<%s> All stanford complete." % current_time()
 
+##################
+#
+#  Formatting to CoNLL from XML format
+#
+##################
+    def process_corpora_from_xml(self):
+        """
+        Given a directory of corpora, where each corpus is a
+        directory of xml files produced by stanford_pipeline,
+        convert text to CoNLL-style formatting:
+        ID    FORM    LEMMA    POS
+        Jobs are run in parallel.
+        """
+        print "<%s> Starting XML conversion..." % current_time()
+        for data_sub_dir in os.listdir(self.output_dir):
+            self._process_xml_to_conll(os.path.join(self.output_dir, data_sub_dir))
+
+
+    def _process_xml_to_conll(self,data_sub_dir):
+        """
+        Given a directory of XML documents from stanford's output,
+        convert them to CoNLL style sentences. Jobs are not run in parallel.
+        """
+        print "<%s> Beginning formatting to CoNLL: %s" % (
+        current_time(), data_sub_dir)
+        # jobs = {}
+#        Parallel(n_jobs=processes)(delayed(_process_single_xml_to_conll)(
+ ##           os.path.join(path_to_data, data_file))
+   #                                for data_file in os.listdir(path_to_data)
+    #                               if not (data_file.startswith(".") or
+     #                                      data_file.endswith(".conll")))
+
+        for data_file in [df for df in os.listdir(data_sub_dir) if not (df.startswith(".") or df.endswith(".conll"))]:
+            self._process_single_xml_to_conll(os.path.join(data_sub_dir,data_file))
+
+        print "<%s> All formatting complete." % current_time()
+
+
+    def _process_single_xml_to_conll(self,path_to_file):
+        """
+        Convert a single file from XML to CoNLL style.
+        """
+        with open(path_to_file + ".conll", 'w') as outfile:
+            #Create iterator over XML elements, don't store whole tree
+            xmltree = ET.iterparse(path_to_file, events=("end",))
+            for _, element in xmltree:
+                if element.tag == "sentence": #If we've read an entire sentence
+                    i = 1
+                    #Output CoNLL style
+                    for word, lemma, pos, ner in zip(element.findall(".//word"),
+                                                     element.findall(".//lemma"),
+                                                     element.findall(".//POS"),
+                                                     element.findall(".//NER")):
+                        outfile.write("%s\t%s\t%s\t%s\t%s\n" % (
+                            i, word.text.encode('utf8'), lemma.text.encode('utf8'),
+                            pos.text, ner.text))
+                        i += 1
+                    outfile.write("\n")
+                    #Clear this section of the XML tree
+                    element.clear()
+
+    def run(self):
+        self.run_stanford_pipeline()
+        if self.config.get('default','outputformat')=='conll':
+            self.process_corpora_from_xml()
 
 
 if __name__=='__main__':
 
     myPythonParser=PythonParser(sys.argv[1])
-    myPythonParser.run_stanford_pipeline()
+    myPythonParser.run()
