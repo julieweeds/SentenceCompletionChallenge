@@ -19,7 +19,7 @@ class PythonParser:
         self.outext=self.config.get('default','outextension')
         self.output_dir = self.data_dir+'-'+self.outext
         #self.conll_dir=self.output_dir+'-conll'
-        self.testinglevel=self.config.get('default','testinglevel')
+        self.testinglevel=float(self.config.get('default','testinglevel'))
 
     def _make_filelist_and_create_files(self, data_dir, filelistpath, output_dir):
 
