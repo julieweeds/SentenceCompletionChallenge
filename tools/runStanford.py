@@ -102,6 +102,7 @@ class PythonParser:
         """
         print "<%s> Starting XML conversion..." % current_time()
         for data_sub_dir in os.listdir(self.output_dir):
+            #if data_sub_dir =='saved':
             self._process_xml_to_conll(os.path.join(self.output_dir, data_sub_dir))
 
 
@@ -120,14 +121,58 @@ class PythonParser:
      #                                      data_file.endswith(".conll")))
 
         for data_file in [df for df in os.listdir(data_sub_dir) if not (df.startswith(".") or df.endswith(".conll"))]:
-            self._process_single_xml_to_conll(os.path.join(data_sub_dir,data_file))
+            self._process_single_xml_with_deps_to_conll(os.path.join(data_sub_dir,data_file))
 
         print "<%s> All formatting complete." % current_time()
 
 
-    def _process_single_xml_to_conll(self,path_to_file):
+
+    def _process_single_xml_with_deps_to_conll(self,path_to_file):
         """
-        Convert a single file from XML to CoNLL style.
+        Convert a single file from XML to CoNLL style.  With dependencies
+        """
+        with open(path_to_file + ".conll", 'w') as outfile:
+            #Create iterator over XML elements, don't store whole tree
+            xmltree = ET.iterparse(path_to_file, events=("end",))
+            for _, element in xmltree:
+                if element.tag == "sentence": #If we've read an entire sentence
+                    i = 1
+
+                    tuples=[(word,lemma,pos,ner) for word, lemma, pos, ner in zip(element.findall(".//word"),
+                                                     element.findall(".//lemma"),
+                                                     element.findall(".//POS"),
+                                                     element.findall(".//NER"))]
+
+                    dependencies=[dep for dep in element.findall('.//dep')]
+                    #print tuples
+                    #print dependencies
+                    giddict={}
+                    reldict={}
+                    for dep in dependencies:
+                        rel=dep.attrib['type']
+                        for child in dep:
+                            if child.tag=='governor':
+                                gid=child.attrib['idx']
+                            if child.tag=='dependent':
+                                did=child.attrib['idx']
+                        #print did,gid,rel
+                        giddict[did]=gid
+                        reldict[did]=rel
+
+
+
+                    for (word,lemma,pos,ner) in tuples:
+                        outfile.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
+                            i, word.text.encode('utf8'), lemma.text.encode('utf8'),
+                            pos.text, ner.text,giddict.get(str(i),''),reldict.get(str(i),'')))
+                        i += 1
+                    outfile.write("\n")
+                    #Clear this section of the XML tree
+                    element.clear()
+
+    def _process_single_xml__to_conll(self,path_to_file):
+        """
+        Convert a single file from XML to CoNLL style.  No dependencies
         """
         with open(path_to_file + ".conll", 'w') as outfile:
             #Create iterator over XML elements, don't store whole tree
@@ -147,6 +192,8 @@ class PythonParser:
                     outfile.write("\n")
                     #Clear this section of the XML tree
                     element.clear()
+
+
 
     def run(self):
         self.run_stanford_pipeline()
