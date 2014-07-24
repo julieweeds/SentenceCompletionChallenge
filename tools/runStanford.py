@@ -35,7 +35,7 @@ class PythonParser:
                     #need to check whether the associated file exists in the output directory and whether size is greater than 0 so can restart after memory crash
                     filepath = os.path.join(data_dir, filename)
                     outpath=os.path.join(output_dir,filename+'.'+self.outext)
-                    if self.mode=='overwrite' or os.path.getsize(outpath)==0:
+                    if self.mode=='overwrite' or (os.path.exists(outpath) and os.path.getsize(outpath)==0):
                         filelist.write("%s\n" % filepath)
                         with open(os.path.join(outpath),
                               'w'):
