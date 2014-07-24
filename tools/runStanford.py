@@ -31,6 +31,7 @@ class PythonParser:
         with open(filelistpath, 'w') as filelist:
             for filename in os.listdir(data_dir):
                 if not filename.startswith("."):
+                    #need to check whether the associated file exists in the output directory and whether size is greater than 0 so can restart after memory crash
                     filepath = os.path.join(data_dir, filename)
                     filelist.write("%s\n" % filepath)
                     with open(os.path.join(output_dir, filename + '.'+self.outext),
@@ -121,8 +122,10 @@ class PythonParser:
      #                                      data_file.endswith(".conll")))
 
         for data_file in [df for df in os.listdir(data_sub_dir) if not (df.startswith(".") or df.endswith(".conll"))]:
-            self._process_single_xml_with_deps_to_conll(os.path.join(data_sub_dir,data_file))
-
+            if 'parse' in self.options:
+                self._process_single_xml_with_deps_to_conll(os.path.join(data_sub_dir,data_file))
+            else:
+                self._process_single_xml__to_conll(os.path.join(data_sub_dir,data_file))
         print "<%s> All formatting complete." % current_time()
 
 
@@ -172,7 +175,7 @@ class PythonParser:
                         element.clear()
             except Exception:
                 pass #ignore this file
-                
+
 
 
 
