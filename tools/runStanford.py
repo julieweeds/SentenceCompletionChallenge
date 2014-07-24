@@ -20,6 +20,7 @@ class PythonParser:
         self.output_dir = self.data_dir+'-'+self.outext
         #self.conll_dir=self.output_dir+'-conll'
         self.testinglevel=float(self.config.get('default','testinglevel'))
+        self.mode=self.config.get('default','mode')  #no_overwrite for not overwriting output files which are non-empty
 
     def _make_filelist_and_create_files(self, data_dir, filelistpath, output_dir):
 
@@ -33,10 +34,12 @@ class PythonParser:
                 if not filename.startswith("."):
                     #need to check whether the associated file exists in the output directory and whether size is greater than 0 so can restart after memory crash
                     filepath = os.path.join(data_dir, filename)
-                    filelist.write("%s\n" % filepath)
-                    with open(os.path.join(output_dir, filename + '.'+self.outext),
-                          'w'):
-                        pass
+                    outpath=os.path.join(output_dir,filename+'.'+self.outext)
+                    if self.mode=='overwrite' or os.path.getsize(outpath)==0:
+                        filelist.write("%s\n" % filepath)
+                        with open(os.path.join(outpath),
+                              'w'):
+                            pass
                 if self.testinglevel>4:#only process one file
                     break
 
@@ -68,6 +71,7 @@ class PythonParser:
             #create list of files to be processed
             filelist=os.path.join(self.stanford_dir,"%s-filelist.txt" %data_sub_dir)
             self._make_filelist_and_create_files(input_sub_dir,filelist,output_sub_dir)
+            if self.testinglevel>3:exit()
 
             #construct stanford java command
             optionstring=self.options[0]
