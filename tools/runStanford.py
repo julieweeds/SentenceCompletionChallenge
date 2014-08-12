@@ -189,27 +189,30 @@ class PythonParser:
         """
         with open(path_to_file + ".conll", 'w') as outfile:
             #Create iterator over XML elements, don't store whole tree
-            xmltree = ET.iterparse(path_to_file, events=("end",))
-            for _, element in xmltree:
-                if element.tag == "sentence": #If we've read an entire sentence
-                    i = 1
-                    #Output CoNLL style
-                    for word, lemma, pos, ner in zip(element.findall(".//word"),
-                                                     element.findall(".//lemma"),
-                                                     element.findall(".//POS"),
-                                                     element.findall(".//NER")):
-                        outfile.write("%s\t%s\t%s\t%s\t%s\n" % (
-                            i, word.text.encode('utf8'), lemma.text.encode('utf8'),
-                            pos.text, ner.text))
-                        i += 1
-                    outfile.write("\n")
-                    #Clear this section of the XML tree
-                    element.clear()
-
+            try:
+                xmltree = ET.iterparse(path_to_file, events=("end",))
+                for _, element in xmltree:
+                    if element.tag == "sentence": #If we've read an entire sentence
+                        i = 1
+                        #Output CoNLL style
+                        for word, lemma, pos, ner in zip(element.findall(".//word"),
+                                                         element.findall(".//lemma"),
+                                                         element.findall(".//POS"),
+                                                         element.findall(".//NER")):
+                            outfile.write("%s\t%s\t%s\t%s\t%s\n" % (
+                                i, word.text.encode('utf8'), lemma.text.encode('utf8'),
+                                pos.text, ner.text))
+                            i += 1
+                        outfile.write("\n")
+                        #Clear this section of the XML tree
+                        element.clear()
+            except:
+                pass #ignore this (probably empty) file
 
 
     def run(self):
-        self.run_stanford_pipeline()
+        if len(self.options)>0:
+            self.run_stanford_pipeline()
         if self.config.get('default','outputformat')=='conll':
             self.process_corpora_from_xml()
 
