@@ -12,8 +12,9 @@ class PythonParser:
     def __init__(self,configfile):
         self.config=ConfigParser.RawConfigParser()
         self.config.read(configfile)
-        self.stanford_dir=self.config.get('default','stanford_dir')
-        self.data_dir=self.config.get('default','data_dir')
+        self.whereami=self.config.get('default','whereami')
+        self.stanford_dir=self.config.get(self.whereami,'stanford_dir')
+        self.data_dir=self.config.get(self.whereami,'data_dir')
         self.java_threads=self.config.get('default','java_threads')
         self.options=ast.literal_eval(self.config.get('default','options'))
         self.outext=self.config.get('default','outextension')
@@ -35,7 +36,7 @@ class PythonParser:
                     #need to check whether the associated file exists in the output directory and whether size is greater than 0 so can restart after memory crash
                     filepath = os.path.join(data_dir, filename)
                     outpath=os.path.join(output_dir,filename+'.'+self.outext)
-                    if self.mode=='overwrite' or os.path.getsize(outpath)==0:
+                    if self.mode=='overwrite' or not os.path.exists(outpath) or os.path.getsize(outpath)==0:
                         filelist.write("%s\n" % filepath)
                         with open(os.path.join(outpath),
                               'w'):
