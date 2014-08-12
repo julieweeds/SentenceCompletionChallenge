@@ -127,7 +127,7 @@ class PythonParser:
      #                                      data_file.endswith(".conll")))
 
         for data_file in [df for df in os.listdir(data_sub_dir) if not (df.startswith(".") or df.endswith(".conll"))]:
-            if 'parse' in self.options:
+            if self.outext=='parsed':
                 self._process_single_xml_with_deps_to_conll(os.path.join(data_sub_dir,data_file))
             else:
                 self._process_single_xml__to_conll(os.path.join(data_sub_dir,data_file))
