@@ -241,7 +241,7 @@ class Composition:
 
         ppmivecs=self.computeppmi(vecs,tots,feattots,typetots)
         for vector in ppmivecs.values():
-            print vector
+            #print vector
             feats=sorted(vector.items(),key=itemgetter(1),reverse=True)
 
         for tuple in feats[:10]:
