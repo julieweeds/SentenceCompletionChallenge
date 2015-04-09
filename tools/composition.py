@@ -1,11 +1,14 @@
 __author__ = 'juliewe'
-import sys
+import sys,math
+from operator import itemgetter
 
 class Composition:
 
     #datapath="~/Documents/workspace/SentenceCompletionChallenge/data/apt/"
     datafile="nyt_sample100.tsv"
     filterfreq=100
+    nouns=["order/N"]
+    adjectives=["financial/J"]
 
     def __init__(self,options):
         self.option=options[0]
@@ -19,6 +22,12 @@ class Composition:
             self.pos=options[1]
         else:
             self.pos="N"
+        self.nounvecs={}
+        self.adjvecs={}
+        self.nountots={}
+        self.nounfeattots={}
+        self.adjtots={}
+        self.adjfeattots={}
 
     def splitpos(self):
 
@@ -176,6 +185,105 @@ class Composition:
                 totals[fields[0]]=fields[1]
         return totals
 
+    def load_vectors(self,words):
+        infile=self.selectpos()+".filtered"
+        vecs={}
+        with open(infile) as instream:
+            lines=0
+            for line in instream:
+                lines+=1
+                print "Processing line "+str(lines)
+
+                line=line.rstrip()
+                fields=line.split("\t")
+                entry=fields[0]
+                if entry in words:
+                    vector={}
+                    features=fields[1:]
+
+                    index=0
+                    while len(features)>0:
+                        index+=1
+
+                        freq=features.pop()
+                        feat=features.pop()
+
+                        #print str(index)+"\t"+feat+"\t"+str(freq)
+                        try:
+                            freq=float(freq)
+                            vector[feat]=freq
+                        except ValueError:
+                            print "Error: "+str(index)+"\t"+feat+"\t"+str(freq)+"\n"
+                            features=features+list(feat)
+                    vecs[entry]=vector
+
+        return vecs
+
+    def compute_typetotals(self,feattots):
+        typetots={}
+        for feature in feattots.keys():
+            pathtype=self.getpathtype(feature)
+            sofar=typetots.get(pathtype,0.0)
+            typetots[pathtype]=sofar+float(feattots[feature])
+
+        return typetots
+
+    def getpathtype(self,feature):
+        fields=feature.split(":")
+        return fields[0]
+
+    def mostsalient(self):
+        if self.pos=="N":
+            vecs=self.nounvecs
+            tots=self.nountots
+            feattots=self.nounfeattots
+            typetots=self.nountypetots
+
+        ppmivecs=self.computeppmi(vecs,tots,feattots,typetots)
+        for vector in ppmivecs.values():
+            print vector
+            feats=sorted(vector.items(),key=itemgetter(1),reverse=True)
+
+        for tuple in feats[:10]:
+            print tuple[0],tuple[1]
+
+
+    def computeppmi(self,vecs,tots,feattots,typetots):
+
+        ppmivecs={}
+        for entry in vecs.keys():
+            ppmivector={}
+            total=float(tots[entry])
+            vector=vecs[entry]
+            for feature in vector.keys():
+                #try:
+                freq=float(vector[feature])
+                feattot=float(feattots[feature])
+                typetot=float(typetots[self.getpathtype(feature)])
+
+                pmi=math.log10((freq*typetot)/(feattot*total))
+
+                if pmi>0:
+                    ppmivector[feature]=pmi
+
+
+
+                #except:
+                 #   print "Error on feature: "+feature+" on word: "+entry
+
+
+            ppmivecs[entry]=ppmivector
+            #print ppmivector
+        return ppmivecs
+
+    def compose(self):
+        self.pos="N"
+        self.nounfeattots=self.load_coltotals()
+        self.nountots=self.load_rowtotals()
+        self.nounvecs= self.load_vectors(self.nouns)
+        self.nountypetots=self.compute_typetotals(self.nounfeattots)
+
+        self.mostsalient()
 
     def run(self):
 
@@ -185,6 +293,8 @@ class Composition:
             self.filter()
         elif self.option=="maketotals":
             self.maketotals()
+        elif self.option=="compose":
+            self.compose()
         else:
             print "Unknown option: "+self.option
 
