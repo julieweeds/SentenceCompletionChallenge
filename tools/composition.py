@@ -5,10 +5,10 @@ from operator import itemgetter
 class Composition:
 
     #datapath="~/Documents/workspace/SentenceCompletionChallenge/data/apt/"
-    datafile="nyt_sample100.tsv"
+    datafile="nyt_sample1000.tsv"
     filterfreq=100
     nouns=["order/N"]
-    adjectives=["financial/J"]
+    adjectives=["military/J","substantial/J"]
 
     def __init__(self,options):
         self.option=options[0]
@@ -28,6 +28,16 @@ class Composition:
         self.nounfeattots={}
         self.adjtots={}
         self.adjfeattots={}
+
+        self.set_words()
+
+    def set_words(self):
+
+        if self.pos=="N":
+            self.words=Composition.nouns
+        elif self.pos=="J":
+            self.words=Composition.adjectives
+
 
     def splitpos(self):
 
@@ -63,6 +73,8 @@ class Composition:
         return
 
     def filter(self):
+
+
         rowtotals = self.load_rowtotals()
         coltotals= self.load_coltotals()
         infile = self.selectpos()
@@ -80,7 +92,7 @@ class Composition:
                 features=fields[1:]
                 entrytot=rowtotals.get(entry,0)
                 nofeats=0
-                if entrytot>Composition.filterfreq:
+                if entrytot>Composition.filterfreq and entry in self.words:
                     outline=entry
                     print entry
                     while len(features)>0:
@@ -185,7 +197,7 @@ class Composition:
                 totals[fields[0]]=fields[1]
         return totals
 
-    def load_vectors(self,words):
+    def load_vectors(self):
         infile=self.selectpos()+".filtered"
         vecs={}
         with open(infile) as instream:
@@ -197,7 +209,8 @@ class Composition:
                 line=line.rstrip()
                 fields=line.split("\t")
                 entry=fields[0]
-                if entry in words:
+                print entry, self.words
+                if entry in self.words:
                     vector={}
                     features=fields[1:]
 
@@ -217,6 +230,7 @@ class Composition:
                             features=features+list(feat)
                     vecs[entry]=vector
 
+        print "Loaded "+str(len(vecs.keys()))+" vectors"
         return vecs
 
     def compute_typetotals(self,feattots):
@@ -238,15 +252,33 @@ class Composition:
             tots=self.nountots
             feattots=self.nounfeattots
             typetots=self.nountypetots
+        elif self.pos=="J":
+            vecs=self.adjvecs
+            tots=self.adjtots
+            feattots=self.adjfeattots
+            typetots=self.nountypetots
+
+        self.mostsalientvecs(vecs,tots,feattots,typetots)
+
+    def mostsalientvecs(self,vecs,tots,feattots,typetots):
 
         ppmivecs=self.computeppmi(vecs,tots,feattots,typetots)
-        for vector in ppmivecs.values():
+        for entry in ppmivecs.keys():
+            vector=ppmivecs[entry]
             #print vector
             feats=sorted(vector.items(),key=itemgetter(1),reverse=True)
 
-        for tuple in feats[:10]:
-            print tuple[0],tuple[1]
+            donetypes={}
 
+            for tuple in feats:
+                feature=tuple[0]
+                pathtype=self.getpathtype(feature)
+                done=donetypes.get(pathtype,0)
+                if done<3:
+                    print tuple[0],tuple[1]
+                donetypes[pathtype]=done+1
+
+            print donetypes
 
     def computeppmi(self,vecs,tots,feattots,typetots):
 
@@ -255,6 +287,7 @@ class Composition:
             ppmivector={}
             total=float(tots[entry])
             vector=vecs[entry]
+
             for feature in vector.keys():
                 #try:
                 freq=float(vector[feature])
@@ -278,12 +311,100 @@ class Composition:
 
     def compose(self):
         self.pos="N"
+        self.set_words()
         self.nounfeattots=self.load_coltotals()
         self.nountots=self.load_rowtotals()
-        self.nounvecs= self.load_vectors(self.nouns)
+        self.nounvecs= self.load_vectors()
         self.nountypetots=self.compute_typetotals(self.nounfeattots)
 
         self.mostsalient()
+
+        self.pos="J"
+        self.set_words()
+        self.adjfeattots=self.load_coltotals()
+        self.adjtots=self.load_rowtotals()
+        self.adjvecs= self.load_vectors()
+        self.adjtypetots=self.compute_typetotals(self.adjfeattots)
+
+        self.mostsalient()
+
+        self.runANcomposition()
+
+    def runANcomposition(self):
+
+        ANfeattots=self.addAN(self.adjfeattots,self.nounfeattots)
+        ANtypetots=self.addAN(self.adjtypetots,self.nountypetots)
+        ANvecs={}
+        ANtots={}
+        for adj in self.adjectives:
+            for noun in self.nouns:
+                (entry,ANvec,ANtot)=self.ANcompose(adj,noun)
+                ANvecs[entry]=ANvec
+                ANtots[entry]=ANtot
+                print ANvecs,ANtots
+        self.mostsalientvecs(ANvecs,ANtots,ANfeattots,ANtypetots)
+
+    def getorder(self,feature):
+        path=self.getpathtype(feature)
+
+        if path=="":
+            order=0
+        else:
+            fields=path.split("\xc2")
+            order=len(fields)
+
+        return order
+
+
+    def addAN(self,adjvector,nounvector):
+        adjPREFIX="_mod"
+        nounPREFIX="mod"
+
+        ANvector={}
+        print "Processing noun features "+str(len(nounvector.keys()))
+        count=0
+        for feature in nounvector.keys():
+            count+=1
+            order = self.getorder(feature)
+
+            value=float(nounvector[feature])
+
+            if order<1:
+                afeature=adjPREFIX+feature
+            else:
+                afeature=adjPREFIX+"\xc2"+feature
+
+            value+=float(adjvector.get(afeature,0))
+            ANvector[feature]=value
+            if count%10000==0:print"Processed "+str(count)
+
+        print "Processing adj features "+str(len(adjvector.keys()))
+        count=0
+        for feature in adjvector.keys():
+            count+=1
+            order=self.getorder(feature)
+            if order<1:
+                nfeature=nounPREFIX+feature
+            else:
+                nfeature=nounPREFIX+"\xc2"+feature
+            if nfeature not in ANvector.keys():
+                value = float(adjvector[feature])
+                value+=float(nounvector.get(nfeature,0))
+                ANvector[nfeature]=value
+            if count%1000==0:print"Processed "+str(count)
+
+        return ANvector
+
+    def ANcompose(self,adj,noun):
+        nounvector=self.nounvecs[noun]
+        adjvector=self.adjvecs[adj]
+        ANvector=self.addAN(adjvector,nounvector)
+        ANtot=float(self.nountots[noun])+float(self.adjtots[adj])
+        entry=adj+" "+noun
+
+        return(entry,ANvector,ANtot)
+
+
 
     def run(self):
 
