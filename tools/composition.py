@@ -6,7 +6,7 @@ class Composition:
 
     #datapath="~/Documents/workspace/SentenceCompletionChallenge/data/apt/"
     datafile="nyt_sample1000.tsv"
-    filterfreq=100
+    filterfreq=1000
     nouns=["order/N"]
     adjectives=["military/J","substantial/J"]
 
@@ -246,6 +246,10 @@ class Composition:
         fields=feature.split(":")
         return fields[0]
 
+    def getpathvalue(self,feature):
+        fields=feature.split(":")
+        return fields[1]
+
     def mostsalient(self):
         if self.pos=="N":
             vecs=self.nounvecs
@@ -355,43 +359,66 @@ class Composition:
 
         return order
 
+    def splitfeature(self,feature):
+        path=self.getpathtype(feature)
 
-    def addAN(self,adjvector,nounvector):
+        if path=="":
+            return "",""
+        else:
+            fields=path.split("\xc2")
+
+
+            if len(fields)>1:
+                text=fields[1]
+                if len(fields)>2:
+                    for field in fields[2:]:
+                        text+="\xc2"+field
+                return fields[0],text
+            else:
+                return fields[0],""
+
+
+    def offsetAN(self,adjvector):
         adjPREFIX="_mod"
         nounPREFIX="mod"
+
+        offsetvector={}
+        for feature in adjvector.keys():
+            (prefix,suffix)= self.splitfeature(feature)
+            if prefix==adjPREFIX:
+                newfeature=suffix+":"+self.getpathvalue(feature)
+            elif prefix.startswith("_"):
+                #incompatible feature for composition
+                print "Incompatible feature for composition: "+feature
+                newfeature=""
+            else:
+                newfeature=nounPREFIX+"\xc2"+feature
+            if not newfeature == "":
+                offsetvector[newfeature]=adjvector[feature]
+
+        return offsetvector
+
+
+    def addAN(self,adjvector,nounvector):
+
+        offsetvector = self.offsetAN(adjvector)
 
         ANvector={}
         print "Processing noun features "+str(len(nounvector.keys()))
         count=0
         for feature in nounvector.keys():
             count+=1
-            order = self.getorder(feature)
-
-            value=float(nounvector[feature])
-
-            if order<1:
-                afeature=adjPREFIX+feature
+            if feature in offsetvector:
+                ANvector[feature]=nounvector[feature]+offsetvector[feature]
+                offsetvector.__delitem__(feature)
             else:
-                afeature=adjPREFIX+"\xc2"+feature
-
-            value+=float(adjvector.get(afeature,0))
-            ANvector[feature]=value
+                ANvector[feature]=nounvector[feature]
             if count%10000==0:print"Processed "+str(count)
 
-        print "Processing adj features "+str(len(adjvector.keys()))
+        print "Processing remaining adj features "+str(len(adjvector.keys()))+" : reduced to : "+str(len(offsetvector.keys()))
         count=0
-        for feature in adjvector.keys():
-            count+=1
-            order=self.getorder(feature)
-            if order<1:
-                nfeature=nounPREFIX+feature
-            else:
-                nfeature=nounPREFIX+"\xc2"+feature
-            if nfeature not in ANvector.keys():
-                value = float(adjvector[feature])
-                value+=float(nounvector.get(nfeature,0))
-                ANvector[nfeature]=value
-            if count%1000==0:print"Processed "+str(count)
+        ANvector.update(offsetvector)
+        print "Complete"
 
         return ANvector
 
