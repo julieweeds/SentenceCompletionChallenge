@@ -8,7 +8,7 @@ class Composition:
     datafile="nyt_sample1000.tsv"
     filterfreq=1000
     nouns=["order/N"]
-    adjectives=["military/J","substantial/J"]
+    adjectives=["military/J"]
 
     def __init__(self,options):
         self.option=options[0]
@@ -248,7 +248,11 @@ class Composition:
 
     def getpathvalue(self,feature):
         fields=feature.split(":")
-        return fields[1]
+        if len(fields)>1:
+            return fields[1]
+        else:
+            #print "No feature value for "+feature
+            return ""
 
     def mostsalient(self):
         if self.pos=="N":
@@ -268,6 +272,7 @@ class Composition:
 
         ppmivecs=self.computeppmi(vecs,tots,feattots,typetots)
         for entry in ppmivecs.keys():
+            print "Most salient features for "+entry+" , total feature count: "+str(tots[entry])+", width: "+str(len(vecs[entry].keys()))+", "+str(len(ppmivecs[entry].keys()))
             vector=ppmivecs[entry]
             #print vector
             feats=sorted(vector.items(),key=itemgetter(1),reverse=True)
@@ -279,7 +284,7 @@ class Composition:
                 pathtype=self.getpathtype(feature)
                 done=donetypes.get(pathtype,0)
                 if done<3:
-                    print tuple[0],tuple[1]
+                    print feature+" : "+str(tuple[1])+" ("+str(vecs[entry][feature])+")"
                 donetypes[pathtype]=done+1
 
             print donetypes
@@ -337,7 +342,10 @@ class Composition:
     def runANcomposition(self):
 
         ANfeattots=self.addAN(self.adjfeattots,self.nounfeattots)
+
         ANtypetots=self.addAN(self.adjtypetots,self.nountypetots)
+        #print ANtypetots
+
         ANvecs={}
         ANtots={}
         for adj in self.adjectives:
@@ -345,7 +353,7 @@ class Composition:
                 (entry,ANvec,ANtot)=self.ANcompose(adj,noun)
                 ANvecs[entry]=ANvec
                 ANtots[entry]=ANtot
-                print ANvecs,ANtots
+                #print ANvecs,ANtots
         self.mostsalientvecs(ANvecs,ANtots,ANfeattots,ANtypetots)
 
     def getorder(self,feature):
@@ -354,7 +362,7 @@ class Composition:
         if path=="":
             order=0
         else:
-            fields=path.split("\xc2")
+            fields=path.split("\xc2\xbb")
             order=len(fields)
 
         return order
@@ -365,14 +373,14 @@ class Composition:
         if path=="":
             return "",""
         else:
-            fields=path.split("\xc2")
+            fields=path.split("\xc2\xbb")
 
 
             if len(fields)>1:
                 text=fields[1]
                 if len(fields)>2:
                     for field in fields[2:]:
-                        text+="\xc2"+field
+                        text+="\xc2\xbb"+field
                 return fields[0],text
             else:
                 return fields[0],""
@@ -383,19 +391,23 @@ class Composition:
         nounPREFIX="mod"
 
         offsetvector={}
+        incomp=0
         for feature in adjvector.keys():
             (prefix,suffix)= self.splitfeature(feature)
             if prefix==adjPREFIX:
                 newfeature=suffix+":"+self.getpathvalue(feature)
             elif prefix.startswith("_"):
                 #incompatible feature for composition
-                print "Incompatible feature for composition: "+feature
+                #print "Incompatible feature for composition: "+feature
+                incomp+=1
                 newfeature=""
+            elif feature.startswith(":"):
+                newfeature=nounPREFIX+feature
             else:
-                newfeature=nounPREFIX+"\xc2"+feature
+                newfeature=nounPREFIX+"\xc2\xbb"+feature
             if not newfeature == "":
                 offsetvector[newfeature]=adjvector[feature]
-
+        #print "Incompatible features in adjective vector: "+str(incomp)
         return offsetvector
 
 
@@ -404,21 +416,23 @@ class Composition:
         offsetvector = self.offsetAN(adjvector)
 
         ANvector={}
-        print "Processing noun features "+str(len(nounvector.keys()))
+        #print "Processing noun features "+str(len(nounvector.keys()))
         count=0
+        intersect=[]
         for feature in nounvector.keys():
             count+=1
             if feature in offsetvector:
-                ANvector[feature]=nounvector[feature]+offsetvector[feature]
+                ANvector[feature]=float(nounvector[feature])+float(offsetvector[feature])
+                intersect.append(feature)
                 offsetvector.__delitem__(feature)
             else:
                 ANvector[feature]=nounvector[feature]
-            if count%10000==0:print"Processed "+str(count)
-
-        print "Processing remaining adj features "+str(len(adjvector.keys()))+" : reduced to : "+str(len(offsetvector.keys()))
+            #if count%10000==0:print"Processed "+str(count)
+        print "Intersecting features: "+str(len(intersect))
+        #print "Processing remaining adj features "+str(len(adjvector.keys()))+" : reduced to : "+str(len(offsetvector.keys()))
         count=0
         ANvector.update(offsetvector)
-        print "Complete"
+        #print "Complete"
 
         return ANvector
 
