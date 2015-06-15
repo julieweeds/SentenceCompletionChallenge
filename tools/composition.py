@@ -1,14 +1,28 @@
 __author__ = 'juliewe'
+#contains a number of tools useful for working with APT vector files - started March 2015
+#split : by POS
+#maketotals : for PPMI calculation/Byblo
+#filter : only words in lists (nouns and adjectives) and/or with particular frequency
+#compose : words in lists using simple add composition
+#reduceorder : only retain features with given orders
+#revectorise : output PPMI vectors TODO
+
+#vectors are displayed via their most salient features
+
+
+
 import sys,math
 from operator import itemgetter
 
 class Composition:
 
     #datapath="~/Documents/workspace/SentenceCompletionChallenge/data/apt/"
-    datafile="nyt_sample1000.tsv"
+    datafile="nyt.tsv"
     filterfreq=1000
-    nouns=["order/N"]
-    adjectives=["military/J"]
+    #nouns=["order/N"]
+    #adjectives=["military/J"]
+    nouns=[]
+    adjectives=[]
 
     def __init__(self,options):
         self.option=options[0]
@@ -18,10 +32,19 @@ class Composition:
         self.adjfile=self.inpath+".adjs"
         self.advfile=self.inpath+".advs"
         self.otherfile=self.inpath+".others"
+
         if len(options)>1:
             self.pos=options[1]
         else:
             self.pos="N"
+
+        if len(options)>2:
+            self.minorder=int(options[2])
+            self.maxorder=int(options[3])
+        else:
+            self.minorder=0
+            self.maxorder=2
+        self.reducedstring=".reduce_"+str(self.minorder)+"_"+str(self.maxorder)
         self.nounvecs={}
         self.adjvecs={}
         self.nountots={}
@@ -48,10 +71,17 @@ class Composition:
         others=open(self.otherfile,"w")
 
         with open(self.inpath) as instream:
+            lines=0
             for line in instream:
+
                 line=line.rstrip()
                 entry=line.split("\t")[0]
-                pos=entry.split("/")[1]
+                try:
+                    pos=entry.split("/")[1]
+                except:
+                    print "Cannot split "+entry+" on line "+str(lines)
+                    pos=""
+
                 if pos=="N":
                     nouns.write(line+"\n")
                 elif pos=="V":
@@ -62,7 +92,8 @@ class Composition:
                     advs.write(line+"\n")
                 else:
                     others.write(line+"\n")
-
+                if lines % 1000==0:print "Processed "+str(lines)+" lines"
+                lines+=1
 
         nouns.close()
         verbs.close()
@@ -72,12 +103,50 @@ class Composition:
 
         return
 
+    def reduceorder(self):
+
+        infile=self.selectpos()
+        outfile=infile+self.reducedstring
+        with open(outfile,"w") as outstream:
+            with open(infile) as instream:
+                lines=0
+                for line in instream:
+                    line=line.rstrip()
+                    print "Processing line "+str(lines)
+                    lines+=1
+                    fields=line.split("\t")
+                    entry=fields[0]
+                    features=fields[1:]
+                    outline=entry
+                    nofeats=0
+                    while len(features)>0:
+                        freq=features.pop()
+                        feat=features.pop()
+                        forder=self.getorder(feat)
+
+                        if forder>=self.minorder and forder<=self.maxorder:
+                            outline+="\t"+feat+"\t"+freq
+                            nofeats+=1
+                    print entry, nofeats
+                    if nofeats>0:
+                        outstream.write(outline+"\n")
+                        #print "written out"
+
+
+    def include(self,word):
+        if len(self.words)==0:
+            return True
+        elif word in self.words:
+            return True
+        else:
+            return False
+
     def filter(self):
 
 
         rowtotals = self.load_rowtotals()
         coltotals= self.load_coltotals()
-        infile = self.selectpos()
+        infile = self.selectpos()+self.reducedstring
         outfile=infile+".filtered"
 
         outstream=open(outfile,"w")
@@ -85,14 +154,14 @@ class Composition:
             lines=0
             for line in instream:
                 line = line.rstrip()
-                lines+=1
                 print "Processing line "+str(lines)
+                lines+=1
                 fields=line.split("\t")
                 entry=fields[0]
                 features=fields[1:]
                 entrytot=rowtotals.get(entry,0)
                 nofeats=0
-                if entrytot>Composition.filterfreq and entry in self.words:
+                if entrytot>Composition.filterfreq and self.include(entry):
                     outline=entry
                     print entry
                     while len(features)>0:
@@ -126,7 +195,7 @@ class Composition:
 
     def maketotals(self):
 
-        infile= self.selectpos()
+        infile= self.selectpos()+self.reducedstring
         rowtotals=infile+".rtot"
         coltotals=infile+".ctot"
 
@@ -137,8 +206,9 @@ class Composition:
         with open(infile) as instream:
             lines=0
             for line in instream:
-                lines+=1
+
                 print "Processing line "+str(lines)
+                lines+=1
                 rowtotal=0.0
                 line=line.rstrip()
                 fields=line.split("\t")
@@ -175,7 +245,7 @@ class Composition:
 
     def load_rowtotals(self):
         infile= self.selectpos()
-        rowtotals=infile+".rtot"
+        rowtotals=infile+self.reducedstring+".rtot"
         totals={}
         with open(rowtotals) as instream:
             for line in instream:
@@ -187,7 +257,7 @@ class Composition:
 
     def load_coltotals(self):
         infile=self.selectpos()
-        coltotals=infile+".ctot"
+        coltotals=infile+self.reducedstring+".ctot"
         totals={}
 
         with open(coltotals) as instream:
@@ -198,19 +268,19 @@ class Composition:
         return totals
 
     def load_vectors(self):
-        infile=self.selectpos()+".filtered"
+        infile=self.selectpos()+self.reducedstring+".filtered"
         vecs={}
         with open(infile) as instream:
             lines=0
             for line in instream:
                 lines+=1
-                print "Processing line "+str(lines)
+                print "Reading line "+str(lines)
 
                 line=line.rstrip()
                 fields=line.split("\t")
                 entry=fields[0]
-                print entry, self.words
-                if entry in self.words:
+                #print entry, self.words
+                if self.include(entry):
                     vector={}
                     features=fields[1:]
 
@@ -232,6 +302,19 @@ class Composition:
 
         print "Loaded "+str(len(vecs.keys()))+" vectors"
         return vecs
+
+    def output(self,vectors,outfile):
+        with open(outfile,"w") as outstream:
+            for entry in vectors.keys():
+                vector=vectors[entry]
+
+                if len(vector.keys())>0:
+                    outstring=entry
+                    for feat in vector.keys():
+                        outstring+="\t"+feat+"\t"+str(vector[feat])
+                    outstream.write(outstring+"\n")
+
+
 
     def compute_typetotals(self,feattots):
         typetots={}
@@ -317,6 +400,17 @@ class Composition:
             ppmivecs[entry]=ppmivector
             #print ppmivector
         return ppmivecs
+
+    def revectorise(self):
+
+        outfile=self.selectpos()+self.reducedstring+".filtered.ppmi"
+        self.nounvecs=self.load_vectors()
+        self.nounfeattots=self.load_coltotals()
+        self.nountots=self.load_rowtotals()
+        self.nountypetots=self.compute_typetotals(self.nounfeattots)
+
+        ppmivecs=self.computeppmi(self.nounvecs,self.nountots,self.nounfeattots,self.nountypetots)
+        self.output(ppmivecs,outfile)
 
     def compose(self):
         self.pos="N"
@@ -457,6 +551,11 @@ class Composition:
             self.maketotals()
         elif self.option=="compose":
             self.compose()
+        elif self.option=="reduceorder":
+            self.reduceorder()
+        elif self.option=="revectorise":
+            self.revectorise()
+
         else:
             print "Unknown option: "+self.option
 
