@@ -24,6 +24,8 @@ class Composition:
     nouns=[]
     adjectives=[]
 
+
+
     def __init__(self,options):
         self.option=options[0]
         self.inpath=Composition.datafile;
@@ -76,19 +78,21 @@ class Composition:
 
                 line=line.rstrip()
                 entry=line.split("\t")[0]
+
                 try:
                     pos=entry.split("/")[1]
                 except:
                     print "Cannot split "+entry+" on line "+str(lines)
                     pos=""
 
-                if pos=="N":
+                pos=entry.split("/")[1].lower()
+                if pos=="n":
                     nouns.write(line+"\n")
-                elif pos=="V":
+                elif pos=="v":
                     verbs.write(line+"\n")
-                elif pos=="J":
+                elif pos=="j":
                     adjs.write(line+"\n")
-                elif pos=="R":
+                elif pos=="r":
                     advs.write(line+"\n")
                 else:
                     others.write(line+"\n")
@@ -157,7 +161,7 @@ class Composition:
                 print "Processing line "+str(lines)
                 lines+=1
                 fields=line.split("\t")
-                entry=fields[0]
+                entry=fields[0].lower()
                 features=fields[1:]
                 entrytot=rowtotals.get(entry,0)
                 nofeats=0
@@ -166,7 +170,7 @@ class Composition:
                     print entry
                     while len(features)>0:
                         freq=features.pop()
-                        feat=features.pop()
+                        feat=features.pop().lower()
 
                         feattot=float(coltotals.get(feat,0))
                         #print feat+"\t"+str(feattot-Composition.filterfreq)
@@ -212,7 +216,7 @@ class Composition:
                 rowtotal=0.0
                 line=line.rstrip()
                 fields=line.split("\t")
-                entry=fields[0]
+                entry=fields[0].lower()
                 features=fields[1:]
 
                 index=0
@@ -220,7 +224,7 @@ class Composition:
                     index+=1
 
                     freq=features.pop()
-                    feat=features.pop()
+                    feat=features.pop().lower()
 
                     #print str(index)+"\t"+feat+"\t"+str(freq)
                     try:
@@ -267,6 +271,12 @@ class Composition:
                 totals[fields[0]]=fields[1]
         return totals
 
+    def add(self,avector,bvector):
+        rvector=dict(avector)
+        for feat in bvector.keys():
+            rvector[feat]=rvector.get(feat,0)+bvector[feat]
+        return rvector
+
     def load_vectors(self):
         infile=self.selectpos()+self.reducedstring+".filtered"
         vecs={}
@@ -298,7 +308,10 @@ class Composition:
                         except ValueError:
                             print "Error: "+str(index)+"\t"+feat+"\t"+str(freq)+"\n"
                             features=features+list(feat)
-                    vecs[entry]=vector
+                    if entry in vecs.keys():
+                        vecs[entry]=self.add(vecs[entry],vector)
+                    else:
+                        vecs[entry]=vector
 
         print "Loaded "+str(len(vecs.keys()))+" vectors"
         return vecs
