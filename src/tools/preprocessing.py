@@ -44,7 +44,7 @@ class Converter:
             newline=index+"\t"+word+"/"+pos+"\t"+dep+"\t"+label+"\n"
             outstream.write(newline)
         else:
-            print "Incorrect file format "+line
+            outstream.write(line)
 
 
     def convert(self):
