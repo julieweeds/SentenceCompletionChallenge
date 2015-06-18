@@ -35,7 +35,7 @@ class Converter:
     def processline(self,line,outstream):
 
         fields=line.split('\t')
-        if len(fields==10):
+        if len(fields)==10:
             index=fields[0]
             word=fields[1]
             pos=fields[3]
