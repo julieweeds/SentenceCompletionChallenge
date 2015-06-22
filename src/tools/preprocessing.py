@@ -18,6 +18,8 @@ def configure(arguments):
         parameters["filename"]=arguments[2]
     if len(arguments)>3:
         parameters["linelength"]=int(arguments[3])
+
+
     return parameters
 
 def getOutputName(filepath):
@@ -34,6 +36,7 @@ class Converter:
     def __init__(self,parameters):
         self.parameters=parameters
         self.linelength=self.parameters.get('linelength',10)
+        self.maxlength=self.parameters.get('maxlength',500)
 
     def processline(self,line,outstream,data):
 
@@ -46,12 +49,14 @@ class Converter:
                 dep = fields[6]
                 label = fields[7]
                 newline=index+"\t"+word+"/"+pos+"\t"+dep+"\t"+label+"\n"
-                outstream.write(newline)
+                data['buffer']+=newline
             data['currentlines']=data['currentlines']+1
             data['currentmaxindex']=int(index)
         else:
-            if data['writetooutput']:
-                outstream.write("\n")
+            data['buffer']+="\n"
+            if data['writetooutput'] and int(data['currentmaxindex'])<self.maxlength:
+                outstream.write(data['buffer'])
+            data['buffer']=""
             data['sentences']=data['sentences']+1
             if int(data['currentlines'])>int(data['maxlines']):
                 data['maxlines']=data['currentlines']
@@ -99,6 +104,7 @@ class Converter:
             data['currentlines']=0
             data['currentindex']=0
             data['sentences']=0
+            data['buffer']=""
             for line in instream:
                 data['lines']+=1
                 if data['lines']%1000000==0:print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
