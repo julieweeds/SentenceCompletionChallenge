@@ -83,7 +83,7 @@ class Converter:
                 lines=0
                 for line in instream:
                     lines+=1
-                    self.processline(line.rstrip(),outstream)
+                    self.processline(line.rstrip(),outstream,data)
                     if lines%1000000==0:print "Processed "+str(lines)+" lines"
 
     def analyse(self):
