@@ -16,6 +16,8 @@ def configure(arguments):
     else:
         parameters["option"]=arguments[1]
         parameters["filename"]=arguments[2]
+    if len(arguments)>3:
+        parameters["linelength"]=arguments[3]
     return parameters
 
 def getOutputName(filepath):
@@ -31,18 +33,19 @@ class Converter:
 
     def __init__(self,parameters):
         self.parameters=parameters
+        self.linelength=self.parameters.get('linelength',10)
 
     def processline(self,line,outstream,data):
 
         fields=line.split('\t')
-        if len(fields)==10:
+        if len(fields)==self.linelength:
             index=fields[0]
-            word=fields[1]
-            pos=fields[3]
-            dep = fields[6]
-            label = fields[7]
-            newline=index+"\t"+word+"/"+pos+"\t"+dep+"\t"+label+"\n"
-            if data['writetooutput']:
+            if(data['writetooutput']):
+                word=fields[1]
+                pos=fields[3]
+                dep = fields[6]
+                label = fields[7]
+                newline=index+"\t"+word+"/"+pos+"\t"+dep+"\t"+label+"\n"
                 outstream.write(newline)
             data['currentlines']=data['currentlines']+1
             data['currentmaxindex']=index
