@@ -72,19 +72,42 @@ class Converter:
             data['currentindex']=0
         return data
 
+    def init_data(self):
+        data={}
+        data['lines']=0
+        data['writetooutput']=False
+        data['maxlines']=0
+        data['maxlines_sentpos']=-1
+        data['maxlines_linepos']=-1
+        data['maxmaxindex']=0
+        data['maxindex_sentpos']=-1
+        data['maxindex_linepos']=-1
+        data['currentlines']=0
+        data['currentindex']=0
+        data['sentences']=0
+        data['buffer']=""
+        return data
+
+
     def convert(self):
         inname=self.parameters["filename"]
         outname=getOutputName(inname)
         print "Converting "+inname+" and writing to "+outname
-        data={}
+        data=self.init_data()
         data['writetooutput']=True
+
         with gzip.open(inname,'rb') as instream:
             with gzip.open(outname,'wb') as outstream:
-                lines=0
+
                 for line in instream:
-                    lines+=1
+                    data['lines']+=1
                     self.processline(line.rstrip(),outstream,data)
-                    if lines%1000000==0:print "Processed "+str(lines)+" lines"
+                    if data['lines']%1000000==0:print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
+
+        print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
+        print "Longest sentence by index: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxindex_sentpos'])+", line "+str(data['maxindex_linepos'])
+        print "Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos'])
+
 
     def analyse(self):
         inname=self.parameters["filename"]
@@ -92,27 +115,15 @@ class Converter:
         print "Analysing "+inname+" with linelength "+str(self.linelength)
         with gzip.open(inname,'rb') as instream:
 
-            data={}
-            data['lines']=0
-            data['writetooutput']=False
-            data['maxlines']=0
-            data['maxlines_sentpos']=-1
-            data['maxlines_linepos']=-1
-            data['maxmaxindex']=0
-            data['maxindex_sentpos']=-1
-            data['maxindex_linepos']=-1
-            data['currentlines']=0
-            data['currentindex']=0
-            data['sentences']=0
-            data['buffer']=""
+            data = self.init_data()
             for line in instream:
                 data['lines']+=1
                 if data['lines']%1000000==0:print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
                 data=self.processline(line,'',data)
 
-            print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
-            print "Longest sentence by index: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxindex_sentpos'])+", line "+str(data['maxindex_linepos'])
-            print "Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos'])
+        print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
+        print "Longest sentence by index: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxindex_sentpos'])+", line "+str(data['maxindex_linepos'])
+        print "Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos'])
 
 
 
