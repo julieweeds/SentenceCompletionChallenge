@@ -106,7 +106,7 @@ class Converter:
 
             print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
             print "Longest sentence by index: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxindex_sentpos'])+", line "+str(data['maxindex_linepos'])
-            print "Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_sentpos'])
+            print "Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos'])
 
 
 
