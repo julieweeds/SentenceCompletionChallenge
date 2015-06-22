@@ -17,7 +17,7 @@ def configure(arguments):
         parameters["option"]=arguments[1]
         parameters["filename"]=arguments[2]
     if len(arguments)>3:
-        parameters["linelength"]=arguments[3]
+        parameters["linelength"]=int(arguments[3])
     return parameters
 
 def getOutputName(filepath):
@@ -84,7 +84,7 @@ class Converter:
     def analyse(self):
         inname=self.parameters["filename"]
 
-        print "Analysing "+inname
+        print "Analysing "+inname+" with linelength "+str(self.linelength)
         with gzip.open(inname,'rb') as instream:
 
             data={}
