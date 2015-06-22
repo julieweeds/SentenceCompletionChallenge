@@ -10,6 +10,8 @@ import sys,gzip
 def configure(arguments):
 
     parameters={}
+    parameters['maxlength']=500
+    parameters['lowercasing']=True
     if len(arguments)<3:
         print "Requires two arguments: option and filename"
         exit()
@@ -22,9 +24,9 @@ def configure(arguments):
 
     return parameters
 
-def getOutputName(filepath):
+def getOutputName(filepath,prefix):
     parts=filepath.split('/')
-    parts[-1]="output."+parts[-1]
+    parts[-1]=prefix+parts[-1]
     outname=parts[0]
     if len(parts)>1:
         for part in parts[1:]:
@@ -37,6 +39,9 @@ class Converter:
         self.parameters=parameters
         self.linelength=self.parameters.get('linelength',10)
         self.maxlength=self.parameters.get('maxlength',500)
+        self.lowercasing=self.parameters.get('lowercasing',False)
+        self.prefix="output."
+        if self.lowercasing: self.prefix+="lc."
 
     def processline(self,line,outstream,data):
 
@@ -45,6 +50,8 @@ class Converter:
             index=fields[0]
             if(data['writetooutput']):
                 word=fields[1]
+                if self.lowercasing:
+                    word=word.lower()
                 pos=fields[3]
                 dep = fields[6]
                 label = fields[7]
@@ -91,8 +98,9 @@ class Converter:
 
     def convert(self):
         inname=self.parameters["filename"]
-        outname=getOutputName(inname)
+        outname=getOutputName(inname,self.prefix)
         print "Converting "+inname+" and writing to "+outname
+        print "Lowercasing: ",self.lowercasing
         data=self.init_data()
         data['writetooutput']=True
 
@@ -130,7 +138,7 @@ class Converter:
     def run(self):
         if self.parameters["option"]=="convert":
             self.convert()
-        if self.parameters["option"]=="analyse":
+        elif self.parameters["option"]=="analyse":
             self.analyse()
         else:
             print "Unknown option: "+self.parameters["option"]
