@@ -48,17 +48,17 @@ class Converter:
                 newline=index+"\t"+word+"/"+pos+"\t"+dep+"\t"+label+"\n"
                 outstream.write(newline)
             data['currentlines']=data['currentlines']+1
-            data['currentmaxindex']=index
+            data['currentmaxindex']=int(index)
         else:
             if data['writetooutput']:
                 outstream.write("\n")
             data['sentences']=data['sentences']+1
-            if data['currentlines']>data['maxlines']:
+            if int(data['currentlines'])>int(data['maxlines']):
                 data['maxlines']=data['currentlines']
                 data['maxlines_sentpos']=data['sentences']
                 data['maxlines_linepos']=data['lines']
 
-            if data['currentmaxindex']>data['maxmaxindex']:
+            if int(data['currentmaxindex'])>int(data['maxmaxindex']):
                 data['maxmaxindex']=data['currentmaxindex']
                 data['maxindex_sentpos']=data['sentences']
                 data['maxindex_linepos']=data['lines']
