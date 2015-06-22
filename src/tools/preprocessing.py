@@ -44,7 +44,7 @@ class Converter:
             newline=index+"\t"+word+"/"+pos+"\t"+dep+"\t"+label+"\n"
             outstream.write(newline)
         else:
-            outstream.write(line)
+            outstream.write("\n")
 
 
     def convert(self):
@@ -58,7 +58,7 @@ class Converter:
                 for line in instream:
                     self.processline(line.rstrip(),outstream)
                     lines+=1
-                    if lines%1000==0:print "Processed "+str(lines)+" lines"
+                    if lines%1000000==0:print "Processed "+str(lines)+" lines"
     def run(self):
         if self.parameters["option"]=="convert":
             self.convert()
