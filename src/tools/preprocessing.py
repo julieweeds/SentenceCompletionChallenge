@@ -154,7 +154,7 @@ class Converter:
 
         for i in range(0,self.parameters["splits"]):
             outstreams[i].close()
-        
+
 
 
     def run(self):
