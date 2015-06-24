@@ -19,7 +19,10 @@ def configure(arguments):
         parameters["option"]=arguments[1]
         parameters["filename"]=arguments[2]
     if len(arguments)>3:
-        parameters["linelength"]=int(arguments[3])
+        if parameters["option"]=="split":
+            parameters["splits"]=int(arguments[3])
+        else:
+            parameters["linelength"]=int(arguments[3])
 
 
     return parameters
@@ -134,12 +137,33 @@ class Converter:
         print "Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos'])
 
 
+    def split(self):
+        inname=self.parameters["filename"]
+        outstreams={}
+        for i in range(0,self.parameters["splits"]):
+            outname=getOutputName(inname,str(i))
+            outstream=gzip.open(outname,'wb')
+            outstreams[i]=outstream
+
+        with gzip.open(inname,'rb') as instream:
+            lines=0
+            for line in instream:
+                lines+=1
+                whichsplit=lines%self.parameters["splits"]
+                outstreams[whichsplit].write(line)
+
+        for i in range(0,self.parameters["splits"]):
+            outstreams[i].close()
+        
+
 
     def run(self):
         if self.parameters["option"]=="convert":
             self.convert()
         elif self.parameters["option"]=="analyse":
             self.analyse()
+        elif self.parameters["option"]=="split":
+            self.split()
         else:
             print "Unknown option: "+self.parameters["option"]
             exit()
