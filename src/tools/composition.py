@@ -29,21 +29,24 @@ class Composition:
 
     def __init__(self,options):
         self.option=options[0]
-        self.inpath=Composition.datafile;
+        if len(options)>1:
+            self.inpath=options[1]
+        else:
+            self.inpath=Composition.datafile
         self.nounfile=self.inpath+".nouns"
         self.verbfile=self.inpath+".verbs"
         self.adjfile=self.inpath+".adjs"
         self.advfile=self.inpath+".advs"
         self.otherfile=self.inpath+".others"
 
-        if len(options)>1:
-            self.pos=options[1]
+        if len(options)>2:
+            self.pos=options[2]
         else:
             self.pos="N"
 
-        if len(options)>2:
-            self.minorder=int(options[2])
-            self.maxorder=int(options[3])
+        if len(options)>3:
+            self.minorder=int(options[3])
+            self.maxorder=int(options[4])
             self.reducedstring=".reduce_"+str(self.minorder)+"_"+str(self.maxorder)
         else:
             self.minorder=0
@@ -93,19 +96,19 @@ class Composition:
                 entry=line.split("\t")[0]
 
                 try:
-                    pos=entry.split("/")[1]
+                    pos=entry.split("/")[-1].lower()
                 except:
                     print "Cannot split "+entry+" on line "+str(lines)
                     pos=""
 
-                pos=entry.split("/")[1].lower()
-                if pos=="n":
+                #pos=entry.split("/")[-1].lower()
+                if pos.startswith("n"):
                     nouns.write(line+"\n")
-                elif pos=="v":
+                elif pos.startswith("v"):
                     verbs.write(line+"\n")
-                elif pos=="j":
+                elif pos.startswith("j"):
                     adjs.write(line+"\n")
-                elif pos=="r":
+                elif pos.startswith("r"):
                     advs.write(line+"\n")
                 else:
                     others.write(line+"\n")
