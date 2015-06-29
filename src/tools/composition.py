@@ -236,7 +236,7 @@ class Composition:
                 rowtotal=0.0
                 line=line.rstrip()
                 fields=line.split("\t")
-                entry=fields[0].lower()
+                entry=fields[0]
                 features=fields[1:]
 
                 index=0
@@ -244,7 +244,7 @@ class Composition:
                     index+=1
 
                     freq=features.pop()
-                    feat=features.pop().lower()
+                    feat=features.pop()
 
                     #print str(index)+"\t"+feat+"\t"+str(freq)
                     try:
