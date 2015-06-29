@@ -11,13 +11,13 @@ __author__ = 'juliewe'
 
 
 
-import sys,math, json,codecs
+import sys,math, json,gzip
 from operator import itemgetter
 
 class Composition:
 
     #datapath="~/Documents/workspace/ThesEval/data/wikiPOS_t100f100_nouns_deps"
-    datafile="nyt.tsv"
+    datafile="wikipedia-lc2vectors.tsv"
     #datafile="wikiPOS.events"
     filterfreq=1000
     #nouns=["brush/n","shoot/n","rose/n","gift/n","conviction/n"]
@@ -81,7 +81,11 @@ class Composition:
         advs=open(self.advfile,"w")
         others=open(self.otherfile,"w")
 
-        with open(self.inpath) as instream:
+
+        infile=self.inpath+".gz"
+
+
+        with gzip.open(infile) as instream:
             lines=0
             for line in instream:
 
