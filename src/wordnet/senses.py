@@ -38,7 +38,7 @@ class Analyser:
     def getPOS(self,word):
         fields=word.split('/')
         if len(fields)>1:
-            return fields[1]
+            return fields[1][0]
         else:
             return 'X'
 

@@ -358,6 +358,19 @@ class Composition:
 
         return typetots
 
+    def compute_nounpathtotals(self,nounvectors):
+        pathtotals={}
+        for entry in nounvectors.keys():
+            totalvector={}
+            vector=nounvectors[entry]
+            for feature in vector.keys():
+                pathtype=self.getpathtype(feature)
+                sofar=totalvector.get(pathtype,0.0)
+                totalvector[pathtype]=sofar+float(vector[feature])
+
+            pathtotals[entry]=totalvector
+        return pathtotals
+
     def getpathtype(self,feature):
         fields=feature.split(":")
         return fields[0]
@@ -373,22 +386,22 @@ class Composition:
     def mostsalient(self):
         if self.pos=="N":
             vecs=self.nounvecs
-            tots=self.nountots
+            tots=self.nounpathtots
             feattots=self.nounfeattots
             typetots=self.nountypetots
         elif self.pos=="J":
             vecs=self.adjvecs
-            tots=self.adjtots
+            tots=self.adjpathtots
             feattots=self.adjfeattots
             typetots=self.nountypetots
 
         self.mostsalientvecs(vecs,tots,feattots,typetots)
 
-    def mostsalientvecs(self,vecs,tots,feattots,typetots):
+    def mostsalientvecs(self,vecs,pathtots,feattots,typetots):
 
-        ppmivecs=self.computeppmi(vecs,tots,feattots,typetots)
+        ppmivecs=self.computeppmi(vecs,pathtots,feattots,typetots)
         for entry in ppmivecs.keys():
-            print "Most salient features for "+entry+" , total feature count: "+str(tots[entry])+", width: "+str(len(vecs[entry].keys()))+", "+str(len(ppmivecs[entry].keys()))
+            print "Most salient features for "+entry+" , width: "+str(len(vecs[entry].keys()))+", "+str(len(ppmivecs[entry].keys()))
             vector=ppmivecs[entry]
             #print vector
             feats=sorted(vector.items(),key=itemgetter(1),reverse=True)
@@ -406,12 +419,12 @@ class Composition:
             print donetypes
             print "-----"
 
-    def computeppmi(self,vecs,tots,feattots,typetots):
+    def computeppmi(self,vecs,pathtots,feattots,typetots):
 
         ppmivecs={}
         for entry in vecs.keys():
             ppmivector={}
-            total=float(tots[entry])
+            total=float(pathtots[entry][self.getpathtype(feature)])
             vector=vecs[entry]
 
             for feature in vector.keys():
@@ -440,10 +453,11 @@ class Composition:
         outfile=self.selectpos()+self.reducedstring+".filtered.ppmi"
         self.nounvecs=self.load_vectors()
         self.nounfeattots=self.load_coltotals()
-        self.nountots=self.load_rowtotals()
+#        self.nountots=self.load_rowtotals()
+        self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
         self.nountypetots=self.compute_typetotals(self.nounfeattots)
 
-        ppmivecs=self.computeppmi(self.nounvecs,self.nountots,self.nounfeattots,self.nountypetots)
+        ppmivecs=self.computeppmi(self.nounvecs,self.nounpathtots,self.nounfeattots,self.nountypetots)
         self.output(ppmivecs,outfile)
 
     def compose(self):
@@ -452,6 +466,7 @@ class Composition:
         self.nounfeattots=self.load_coltotals()
         self.nountots=self.load_rowtotals()
         self.nounvecs= self.load_vectors()
+        self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
         self.nountypetots=self.compute_typetotals(self.nounfeattots)
 
         self.mostsalient()
@@ -461,6 +476,7 @@ class Composition:
         self.adjfeattots=self.load_coltotals()
         self.adjtots=self.load_rowtotals()
         self.adjvecs= self.load_vectors()
+        self.adjpathtots=self.compute_nounpathtotals(self.adjvecs)
         self.adjtypetots=self.compute_typetotals(self.adjfeattots)
 
         self.mostsalient()
@@ -473,6 +489,7 @@ class Composition:
         self.nounfeattots=self.load_coltotals()
         self.nountots=self.load_rowtotals()
         self.nounvecs= self.load_vectors()
+        self.pathtots=self.compute_nounpathtotals(self.nounvecs)
         self.nountypetots=self.compute_typetotals(self.nounfeattots)
 
         self.mostsalient()
