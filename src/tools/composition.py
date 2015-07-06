@@ -183,7 +183,7 @@ class Composition:
             for line in instream:
                 line = line.rstrip()
                 if lines%1000==0:
-                    percent=lines*100/todo
+                    percent=lines*100.0/todo
                     print "Processing line "+str(lines)+"("+str(percent)+"%)"
                 lines+=1
                 fields=line.split("\t")
@@ -222,6 +222,7 @@ class Composition:
         outstream=open(outfile,"w")
 
         todo=len(rowtotals.keys())
+        print "Estimated total vectors to do = "+str(todo)
         with open(infile) as instream:
             lines=0
             for line in instream:
@@ -241,7 +242,7 @@ class Composition:
                 outstream.write(outline)
                 lines+=1
                 if lines%1000==0:
-                    percent=lines*100/todo
+                    percent=lines*100.0/todo
                     print "Completed "+str(lines)+" vectors ("+str(percent)+"%)"
         outstream.close()
 
@@ -512,7 +513,7 @@ class Composition:
 
                 done+=1
                 if done%1000==0:
-                    percent=done*100/todo
+                    percent=done*100.0/todo
                     print "Completed "+str(done)+" vectors ("+str(percent)+"%)"
 
 
