@@ -5,7 +5,8 @@ __author__ = 'juliewe'
 #filter : only words in lists (nouns and adjectives) and/or with particular frequency
 #compose : words in lists using simple add composition
 #reduceorder : only retain features with given orders
-#revectorise : output PPMI vectors
+#revectorise : output PPMI vectors or PNPPMI vectors
+#normalise: convert counts to probabilities
 
 #vectors are displayed via their most salient features
 
@@ -52,6 +53,10 @@ class Composition:
             self.minorder=0
             self.maxorder=2
             self.reducedstring=""
+
+        self.pp_normal= "pp_normalise" in options or "pnppmi" in options #include one of these flags in order for PPMI values to be multiplied by path probability in final vectors
+
+        self.normalised = "normalise" in options or "normalised" in options #this may be the main option (to carry out normalisation) or be included as one of the optional options so that normalised counts are used
 
         self.nounvecs={}
         self.adjvecs={}
@@ -172,11 +177,14 @@ class Composition:
         outstream=open(outfile,"w")
         print "Filtering for words ",self.words
         print "Filtering for frequency ",Composition.filterfreq
+        todo=len(rowtotals)
         with open(infile) as instream:
             lines=0
             for line in instream:
                 line = line.rstrip()
-                if lines%1000==0:print "Processing line "+str(lines)
+                if lines%1000==0:
+                    percent=lines*100/todo
+                    print "Processing line "+str(lines)+"("+str(percent)+"%)"
                 lines+=1
                 fields=line.split("\t")
                 #entry=fields[0].lower()
@@ -186,7 +194,7 @@ class Composition:
                 nofeats=0
                 if entrytot>Composition.filterfreq and self.include(entry):
                     outline=entry
-                    print entry
+                    #print "Filtering entry for "+entry
                     while len(features)>0:
                         freq=features.pop()
                         #feat=features.pop().lower()
@@ -205,6 +213,38 @@ class Composition:
 
         outstream.close()
 
+    def normalise(self):
+        rowtotals=self.load_rowtotals()
+        infile= self.selectpos()+self.reducedstring+".filtered"
+        outfile=infile+".norm"
+
+        print "Normalising counts => sum to 1"
+        outstream=open(outfile,"w")
+
+        todo=len(rowtotals.keys())
+        with open(infile) as instream:
+            lines=0
+            for line in instream:
+
+                line = line.rstrip()
+                fields=line.split("\t")
+                entry=fields[0]
+                features=fields[1:]
+                entrytot=rowtotals[entry]
+                outline=entry
+                while len(features)>0:
+                    weight=float(features.pop())
+                    feat=features.pop()
+                    weight = weight/entrytot
+                    outline+="\t"+feat+"\t"+str(weight)
+                outline+="\n"
+                outstream.write(outline)
+                lines+=1
+                if lines%1000==0:
+                    percent=lines*100/todo
+                    print "Completed "+str(lines)+" vectors ("+str(percent)+"%)"
+        outstream.close()
+
     def selectpos(self):
         if self.pos=="N":
             infile=self.nounfile
@@ -219,7 +259,10 @@ class Composition:
 
     def maketotals(self):
 
-        infile= self.selectpos()+self.reducedstring
+        if self.normalised:
+            infile=self.selectpos()+self.reducedstring+".filtered"+".norm"
+        else:
+            infile= self.selectpos()+self.reducedstring
         rowtotals=infile+".rtot"
         coltotals=infile+".ctot"
 
@@ -268,9 +311,12 @@ class Composition:
         cols.close()
 
     def load_rowtotals(self):
-        infile= self.selectpos()
-        rowtotals=infile+self.reducedstring+".rtot"
+        infile= self.selectpos()+self.reducedstring
+        if self.normalised and not self.option=="normalise":
+            infile+=".filtered.norm"
+        rowtotals=infile+".rtot"
         totals={}
+        print "Loading entry totals from: "+rowtotals
         with open(rowtotals) as instream:
             for line in instream:
                 line=line.rstrip()
@@ -280,10 +326,12 @@ class Composition:
         return totals
 
     def load_coltotals(self):
-        infile=self.selectpos()
-        coltotals=infile+self.reducedstring+".ctot"
+        infile=self.selectpos()+self.reducedstring
+        if self.normalised and not self.option=="normalise":
+            infile+=".filtered.norm"
+        coltotals=infile+".ctot"
         totals={}
-
+        print "Loading feature totals from: "+coltotals
         with open(coltotals) as instream:
             for line in instream:
                 line=line.rstrip()
@@ -299,12 +347,15 @@ class Composition:
 
     def load_vectors(self):
         infile=self.selectpos()+self.reducedstring+".filtered"
+        if self.normalised and not self.option=="normalise":
+            infile+=".norm"
         vecs={}
+        print "Loading vectors from: "+infile
         with open(infile) as instream:
             lines=0
             for line in instream:
                 lines+=1
-                print "Reading line "+str(lines)
+                if lines%1000==0: print "Reading line "+str(lines)
 
                 line=line.rstrip()
                 fields=line.split("\t")
@@ -337,6 +388,8 @@ class Composition:
         return vecs
 
     def output(self,vectors,outfile):
+        #write a set of vectors to file
+        print "Writing vectors to output file: "+outfile
         with open(outfile,"w") as outstream:
             for entry in vectors.keys():
                 vector=vectors[entry]
@@ -350,6 +403,8 @@ class Composition:
 
 
     def compute_typetotals(self,feattots):
+        #compute totals for different paths over all entries (using column totals given in feattots)
+        print "Computing path totals C<*,t,*>"
         typetots={}
         for feature in feattots.keys():
             pathtype=self.getpathtype(feature)
@@ -358,11 +413,13 @@ class Composition:
 
         return typetots
 
-    def compute_nounpathtotals(self,nounvectors):
+    def compute_nounpathtotals(self,vectors):
+        #compute totals for the different paths for each entry
+        print "Computing path totals for each entry C<w1,t,*>"
         pathtotals={}
-        for entry in nounvectors.keys():
+        for entry in vectors.keys():
             totalvector={}
-            vector=nounvectors[entry]
+            vector=vectors[entry]
             for feature in vector.keys():
                 pathtype=self.getpathtype(feature)
                 sofar=totalvector.get(pathtype,0.0)
@@ -372,6 +429,7 @@ class Composition:
         return pathtotals
 
     def getpathtype(self,feature):
+        #get the path of a given feature
         fields=feature.split(":")
         return fields[0]
 
@@ -389,17 +447,19 @@ class Composition:
             tots=self.nounpathtots
             feattots=self.nounfeattots
             typetots=self.nountypetots
+            entrytots=self.nountots
         elif self.pos=="J":
             vecs=self.adjvecs
             tots=self.adjpathtots
             feattots=self.adjfeattots
             typetots=self.nountypetots
+            entrytots=self.adjtots
 
-        self.mostsalientvecs(vecs,tots,feattots,typetots)
+        self.mostsalientvecs(vecs,tots,feattots,typetots,entrytots)
 
-    def mostsalientvecs(self,vecs,pathtots,feattots,typetots):
+    def mostsalientvecs(self,vecs,pathtots,feattots,typetots,entrytots):
 
-        ppmivecs=self.computeppmi(vecs,pathtots,feattots,typetots)
+        ppmivecs=self.computeppmi(vecs,pathtots,feattots,typetots,entrytots)
         for entry in ppmivecs.keys():
             print "Most salient features for "+entry+" , width: "+str(len(vecs[entry].keys()))+", "+str(len(ppmivecs[entry].keys()))
             vector=ppmivecs[entry]
@@ -419,29 +479,42 @@ class Composition:
             print donetypes
             print "-----"
 
-    def computeppmi(self,vecs,pathtots,feattots,typetots):
+    def computeppmi(self,vecs,pathtots,feattots,typetots,entrytots):
 
         ppmivecs={}
+        if self.pp_normal:
+            print "Computing pnppmi"
+        else:
+            print "Computing ppmi"
+        done =0
+        todo=len(vecs.keys())
         for entry in vecs.keys():
+
             ppmivector={}
-            total=float(pathtots[entry][self.getpathtype(feature)])
+
             vector=vecs[entry]
 
             for feature in vector.keys():
-                #try:
-                freq=float(vector[feature])
-                feattot=float(feattots[feature])
-                typetot=float(typetots[self.getpathtype(feature)])
+
+                freq=float(vector[feature])  # C<w1,p,w2>
+                total=float(pathtots[entry][self.getpathtype(feature)]) # S<w1,p,*>
+                feattot=float(feattots[feature]) #S<*,p,w2>
+                typetot=float(typetots[self.getpathtype(feature)]) #S<*,p,*>
 
                 pmi=math.log10((freq*typetot)/(feattot*total))
 
                 if pmi>0:
+                    if self.pp_normal:
+                        entrytotal=float(entrytots[entry]) # S<w1,*,*>
+                        pmi=pmi * total/entrytotal
                     ppmivector[feature]=pmi
 
 
+                done+=1
+                if done%1000==0:
+                    percent=done*100/todo
+                    print "Completed "+str(done)+" vectors ("+str(percent)+"%)"
 
-                #except:
-                 #   print "Error on feature: "+feature+" on word: "+entry
 
 
             ppmivecs[entry]=ppmivector
@@ -450,14 +523,18 @@ class Composition:
 
     def revectorise(self):
 
-        outfile=self.selectpos()+self.reducedstring+".filtered.ppmi"
+        if self.pp_normal:
+            suffix = "pnppmi"
+        else:
+            suffix = "ppmi"
+        outfile=self.selectpos()+self.reducedstring+".filtered."+suffix
         self.nounvecs=self.load_vectors()
         self.nounfeattots=self.load_coltotals()
-#        self.nountots=self.load_rowtotals()
+        self.nountots=self.load_rowtotals()
         self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
         self.nountypetots=self.compute_typetotals(self.nounfeattots)
 
-        ppmivecs=self.computeppmi(self.nounvecs,self.nounpathtots,self.nounfeattots,self.nountypetots)
+        ppmivecs=self.computeppmi(self.nounvecs,self.nounpathtots,self.nounfeattots,self.nountypetots,self.nountots)
         self.output(ppmivecs,outfile)
 
     def compose(self):
@@ -499,6 +576,8 @@ class Composition:
         ANfeattots=self.addAN(self.adjfeattots,self.nounfeattots)
 
         ANtypetots=self.addAN(self.adjtypetots,self.nountypetots)
+
+        ANpathtots=self.addAN(self.adjpathtots,self.nounpathtots)
         #print ANtypetots
 
         ANvecs={}
@@ -509,7 +588,9 @@ class Composition:
                 ANvecs[entry]=ANvec
                 ANtots[entry]=ANtot
                 #print ANvecs,ANtots
-        self.mostsalientvecs(ANvecs,ANtots,ANfeattots,ANtypetots)
+
+        #check this
+        self.mostsalientvecs(ANvecs,ANpathtots,ANfeattots,ANtypetots,ANtots)
 
     def getorder(self,feature):
         path=self.getpathtype(feature)
@@ -606,10 +687,11 @@ class Composition:
         self.nountots=self.load_rowtotals()
         self.nountypetots=self.compute_typetotals(self.nounfeattots)
         self.nounvecs= self.load_vectors()
+        self.pathtots=self.compute_nounpathtotals(self.nounvecs)
 
         intersectedvecs=self.intersectall()
 
-        self.mostsalientvecs(intersectedvecs,self.nountots,self.nounfeattots,self.nountypetots)
+        self.mostsalientvecs(intersectedvecs,self.pathtots,self.nounfeattots,self.nountypetots,self.nountots)
 
     def intersectall(self):
 
@@ -651,16 +733,18 @@ class Composition:
 
         if self.option=="split":
             self.splitpos()
-        elif self.option =="filter":
-            self.filter()
+        elif self.option=="reduceorder":
+            self.reduceorder()
         elif self.option=="maketotals":
             self.maketotals()
+        elif self.option =="filter":
+            self.filter()
+        elif self.option == "normalise":
+            self.normalise()
         elif self.option=="compose":
             self.compose()
         elif self.option=="inspect":
             self.inspect()
-        elif self.option=="reduceorder":
-            self.reduceorder()
         elif self.option=="revectorise":
             self.revectorise()
         elif self.option=="intersect":
