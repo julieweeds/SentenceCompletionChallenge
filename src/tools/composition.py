@@ -14,6 +14,7 @@ __author__ = 'juliewe'
 
 import sys,math, json,gzip
 from operator import itemgetter
+import graphing
 
 class Composition:
 
@@ -22,8 +23,8 @@ class Composition:
     #datafile="wikiPOS.events"
     filterfreq=1000
     #nouns=["brush/n","shoot/n","rose/n","gift/n","conviction/n"]
-    #filterfile="senseneighbours.json"
-    filterfile=""
+    filterfile="senseneighbours1.json"
+    #filterfile=""
     #adjectives=["military/J"]
     nouns=[]
     adjectives=[]
@@ -56,6 +57,7 @@ class Composition:
             self.reducedstring=""
 
         self.pp_normal= "pp_normalise" in options or "pnppmi" in options #include one of these flags in order for PPMI values to be multiplied by path probability in final vectors
+        self.gof_ppmi="gof_ppmi" in options
 
         self.normalised = "normalise" in options or "normalised" in options #this may be the main option (to carry out normalisation) or be included as one of the optional options so that normalised counts are used
 
@@ -486,12 +488,19 @@ class Composition:
     def computeppmi(self,vecs,pathtots,feattots,typetots,entrytots):
 
         ppmivecs={}
+        grandtot=0.0
         if self.pp_normal:
             print "Computing pnppmi"
+        elif self.gof_ppmi:
+            print "Computing gof_ppmi"
+            for type in typetots.keys():
+                grandtot+=float(typetots[type])
+                print type, grandtot
         else:
             print "Computing ppmi"
         done =0
         todo=len(vecs.keys())
+
         for entry in vecs.keys():
 
             ppmivector={}
@@ -504,12 +513,17 @@ class Composition:
                 total=float(pathtots[entry][self.getpathtype(feature)]) # S<w1,p,*>
                 feattot=float(feattots[feature]) #S<*,p,w2>
                 typetot=float(typetots[self.getpathtype(feature)]) #S<*,p,*>
+                entrytotal=float(entrytots[entry]) # S<w1,*,*>
 
-                pmi=math.log10((freq*typetot)/(feattot*total))
+                if self.gof_ppmi:
+
+                    pmi=math.log10((freq*grandtot)/(feattot*entrytotal))
+                else:
+                    pmi=math.log10((freq*typetot)/(feattot*total))
 
                 if pmi>0:
                     if self.pp_normal:
-                        entrytotal=float(entrytots[entry]) # S<w1,*,*>
+
                         pmi=pmi * total/entrytotal
                     ppmivector[feature]=pmi
 
@@ -532,6 +546,8 @@ class Composition:
             suffix=""
         if self.pp_normal:
             suffix += ".pnppmi"
+        elif self.gof_ppmi:
+            suffix += ".gof_ppmi"
         else:
             suffix += ".ppmi"
         outfile=self.selectpos()+self.reducedstring+".filtered"+suffix
@@ -573,8 +589,13 @@ class Composition:
         self.nounfeattots=self.load_coltotals()
         self.nountots=self.load_rowtotals()
         self.nounvecs= self.load_vectors()
-        self.pathtots=self.compute_nounpathtotals(self.nounvecs)
+        self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
         self.nountypetots=self.compute_typetotals(self.nounfeattots)
+        print self.nountypetots
+        graphing.display_bargraph(self.nountypetots,title="Path Distribution over all Nouns")
+        for entry in self.nounvecs.keys():
+            title="Path Distribution for "+entry
+            graphing.display_bargraph(self.nounpathtots[entry],title)
 
         self.mostsalient()
 
@@ -694,11 +715,11 @@ class Composition:
         self.nountots=self.load_rowtotals()
         self.nountypetots=self.compute_typetotals(self.nounfeattots)
         self.nounvecs= self.load_vectors()
-        self.pathtots=self.compute_nounpathtotals(self.nounvecs)
+       # self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
 
         intersectedvecs=self.intersectall()
-
-        self.mostsalientvecs(intersectedvecs,self.pathtots,self.nounfeattots,self.nountypetots,self.nountots)
+        self.nounpathtots=self.compute_nounpathtotals(intersectedvecs)
+        self.mostsalientvecs(intersectedvecs,self.nounpathtots,self.nounfeattots,self.nountypetots,self.nountots)
 
     def intersectall(self):
 
@@ -756,6 +777,7 @@ class Composition:
             self.revectorise()
         elif self.option=="intersect":
             self.intersect()
+
 
         else:
             print "Unknown option: "+self.option
