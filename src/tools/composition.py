@@ -45,7 +45,8 @@ class Composition:
         else:
             self.pos="N"
 
-        if len(options)>3:
+        if len(options)>3 and not options[3]=="X":
+
             self.minorder=int(options[3])
             self.maxorder=int(options[4])
             self.reducedstring=".reduce_"+str(self.minorder)+"_"+str(self.maxorder)
@@ -169,11 +170,13 @@ class Composition:
     def filter(self):
 
 
-        rowtotals = self.load_rowtotals()
-        coltotals= self.load_coltotals()
+
         infile = self.selectpos()+self.reducedstring
         outfile=infile+".filtered"
 
+        coltotals= self.load_coltotals()
+        self.reducedstring=".reduce_1_1" #always use same rowtotals for filtering whatever the reduction
+        rowtotals = self.load_rowtotals()
         outstream=open(outfile,"w")
         print "Filtering for words ",self.words
         print "Filtering for frequency ",Composition.filterfreq
