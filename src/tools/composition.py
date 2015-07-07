@@ -513,11 +513,10 @@ class Composition:
                         pmi=pmi * total/entrytotal
                     ppmivector[feature]=pmi
 
-
-                done+=1
-                if done%1000==0:
-                    percent=done*100.0/todo
-                    print "Completed "+str(done)+" vectors ("+str(percent)+"%)"
+            done+=1
+            if done%1000==0:
+                percent=done*100.0/todo
+                print "Completed "+str(done)+" vectors ("+str(percent)+"%)"
 
 
 
