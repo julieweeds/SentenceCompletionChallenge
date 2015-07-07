@@ -526,11 +526,15 @@ class Composition:
 
     def revectorise(self):
 
-        if self.pp_normal:
-            suffix = "pnppmi"
+        if self.normalised:
+            suffix=".norm"
         else:
-            suffix = "ppmi"
-        outfile=self.selectpos()+self.reducedstring+".filtered."+suffix
+            suffix=""
+        if self.pp_normal:
+            suffix += ".pnppmi"
+        else:
+            suffix += ".ppmi"
+        outfile=self.selectpos()+self.reducedstring+".filtered"+suffix
         self.nounvecs=self.load_vectors()
         self.nounfeattots=self.load_coltotals()
         self.nountots=self.load_rowtotals()
