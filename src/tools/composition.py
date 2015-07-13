@@ -23,8 +23,8 @@ class Composition:
     #datafile="wikiPOS.events"
     filterfreq=1000
     #nouns=["brush/n","shoot/n","rose/n","gift/n","conviction/n"]
-    filterfile="senseneighbours2.json"
-    #filterfile=""
+    #filterfile="senseneighbours2.json"
+    filterfile=""
     #adjectives=["military/J"]
     nouns=[]
     adjectives=[]
