@@ -14,7 +14,7 @@ __author__ = 'juliewe'
 
 import sys,math, json,gzip
 from operator import itemgetter
-import graphing
+#import graphing
 
 class Composition:
 
