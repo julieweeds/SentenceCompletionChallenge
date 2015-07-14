@@ -12,9 +12,9 @@ __author__ = 'juliewe'
 
 
 
-import sys,math, json,gzip
+import sys,math,gzip,yaml
 from operator import itemgetter
-#import graphing
+import graphing
 
 class Composition:
 
@@ -23,11 +23,16 @@ class Composition:
     #datafile="wikiPOS.events"
     filterfreq=1000
     #nouns=["brush/n","shoot/n","rose/n","gift/n","conviction/n"]
-    #filterfile="senseneighbours2.json"
+    filterfile="senseneighbours1.json"
     filterfile=""
     #adjectives=["military/J"]
     nouns=[]
     adjectives=[]
+    comppairfile="comppairs.json"
+    #comppairfile=""
+    includedtypes=["mod"]
+    includedtypes=[]
+    featmax=3
 
     def __init__(self,options):
         self.option=options[0]
@@ -68,21 +73,45 @@ class Composition:
         self.adjtots={}
         self.adjfeattots={}
 
+        if self.comppairfile:
+            with open(Composition.comppairfile) as fp:
+                self.comppairlist=yaml.safe_load(fp)
+
+        else:
+            self.comppairlist=[]
+        print self.comppairlist
         self.set_words()
+        self.includedtypes=Composition.includedtypes
+        if Composition.comppairfile=="":
+            self.comppairfile=False
+        else:
+            self.comppairfile=True
 
     def set_words(self):
 
-        if Composition.filterfile=="":
+        if self.comppairfile:
+            if self.pos=="J":
+                index=2
+            else:
+                index=0
+            self.words=[]
+            for pair in self.comppairlist:
+                if not pair[index] in self.words:
+                    self.words.append(pair[index])
+
+
+        elif Composition.filterfile=="":
             if self.pos=="N":
                 self.words=Composition.nouns
             elif self.pos=="J":
                 self.words=Composition.adjectives
         else:
             with open(Composition.filterfile) as fp:
-                self.wordlistlist=json.load(fp)
+                self.wordlistlist=yaml.safe_load(fp)
             self.words=[]
             for wordlist in self.wordlistlist:
                 self.words+=wordlist
+        print "Setting words of interest: ",self.words
 
     def splitpos(self):
 
@@ -260,6 +289,10 @@ class Composition:
             infile=self.adjfile
         elif self.pos=="R":
             infile=self.advfile
+        elif self.pos=="AN":
+            infile=self.inpath+".ans"
+        else:
+            infile=self.nounfile
 
         return infile
 
@@ -280,7 +313,7 @@ class Composition:
             lines=0
             for line in instream:
 
-                print "Processing line "+str(lines)
+                if lines%1000==0:print "Processing line "+str(lines)
                 lines+=1
                 rowtotal=0.0
                 line=line.rstrip()
@@ -327,7 +360,9 @@ class Composition:
             for line in instream:
                 line=line.rstrip()
                 fields=line.split("\t")
-                totals[fields[0]]=float(fields[1])
+                if self.normalised or float(fields[1])>Composition.filterfreq:
+                    totals[fields[0]]=float(fields[1])
+        print "Loaded "+str(len(totals.keys()))
 
         return totals
 
@@ -342,7 +377,9 @@ class Composition:
             for line in instream:
                 line=line.rstrip()
                 fields=line.split("\t")
-                totals[fields[0]]=float(fields[1])
+                if self.normalised or float(fields[1])>Composition.filterfreq:
+                    totals[fields[0]]=float(fields[1])
+        print "Loaded "+str(len(totals.keys()))
         return totals
 
     def add(self,avector,bvector):
@@ -351,10 +388,11 @@ class Composition:
             rvector[feat]=rvector.get(feat,0)+bvector[feat]
         return rvector
 
-    def load_vectors(self):
-        infile=self.selectpos()+self.reducedstring+".filtered"
-        if self.normalised and not self.option=="normalise":
-            infile+=".norm"
+    def load_vectors(self,infile=""):
+        if infile=="":
+            infile=self.selectpos()+self.reducedstring+".filtered"
+            if self.normalised and not self.option=="normalise":
+                infile+=".norm"
         vecs={}
         print "Loading vectors from: "+infile
         with open(infile) as instream:
@@ -399,12 +437,25 @@ class Composition:
         with open(outfile,"w") as outstream:
             for entry in vectors.keys():
                 vector=vectors[entry]
-
+                print entry
+                #print vector
                 if len(vector.keys())>0:
                     outstring=entry
+                    ignored=0
+                    nofeats=0
                     for feat in vector.keys():
-                        outstring+="\t"+feat+"\t"+str(vector[feat])
-                    outstream.write(outstring+"\n")
+                        forder=self.getorder(feat)
+
+                        if forder>=self.minorder and forder<=self.maxorder:
+
+                            try:
+                                outstring+="\t"+feat+"\t"+str(vector[feat])
+                                nofeats+=1
+                            except:
+                                ignored+=1
+                    print "Ignored "+str(ignored)+" features"
+                    if nofeats>0:
+                        outstream.write(outstring+"\n")
 
 
 
@@ -442,7 +493,7 @@ class Composition:
     def getpathvalue(self,feature):
         fields=feature.split(":")
         if len(fields)>1:
-            return fields[1]
+            return ":"+fields[1]
         else:
             #print "No feature value for "+feature
             return ""
@@ -461,7 +512,7 @@ class Composition:
             typetots=self.nountypetots
             entrytots=self.adjtots
 
-        self.mostsalientvecs(vecs,tots,feattots,typetots,entrytots)
+        return self.mostsalientvecs(vecs,tots,feattots,typetots,entrytots)
 
     def mostsalientvecs(self,vecs,pathtots,feattots,typetots,entrytots):
 
@@ -478,12 +529,20 @@ class Composition:
                 feature=tuple[0]
                 pathtype=self.getpathtype(feature)
                 done=donetypes.get(pathtype,0)
-                if done<3:
+                if done<Composition.featmax and self.typeinclude(pathtype):
                     print feature+" : "+str(tuple[1])+" ("+str(vecs[entry][feature])+")"
                 donetypes[pathtype]=done+1
 
             print donetypes
             print "-----"
+        return ppmivecs
+
+    def typeinclude(self,pathtype):
+        if self.includedtypes==[]:
+            return True
+        else:
+            return pathtype in self.includedtypes
+
 
     def computeppmi(self,vecs,pathtots,feattots,typetots,entrytots):
 
@@ -495,7 +554,7 @@ class Composition:
             print "Computing gof_ppmi"
             for type in typetots.keys():
                 grandtot+=float(typetots[type])
-                print type, grandtot
+                #print type, grandtot
         else:
             print "Computing ppmi"
         done =0
@@ -506,9 +565,7 @@ class Composition:
             ppmivector={}
 
             vector=vecs[entry]
-
             for feature in vector.keys():
-
                 freq=float(vector[feature])  # C<w1,p,w2>
                 total=float(pathtots[entry][self.getpathtype(feature)]) # S<w1,p,*>
                 feattot=float(feattots[feature]) #S<*,p,w2>
@@ -561,6 +618,18 @@ class Composition:
         self.output(ppmivecs,outfile)
 
     def compose(self):
+
+        if self.normalised:
+            suffix=".norm"
+        else:
+            suffix=""
+        if self.pp_normal:
+            suffix += ".pnppmi"
+        elif self.gof_ppmi:
+            suffix += ".gof_ppmi"
+        else:
+            suffix += ".ppmi"
+        outfile=self.selectpos()+self.reducedstring+".composed"+suffix
         self.pos="N"
         self.set_words()
         self.nounfeattots=self.load_coltotals()
@@ -581,7 +650,7 @@ class Composition:
 
         self.mostsalient()
 
-        self.runANcomposition()
+        self.output(self.runANcomposition(),outfile)
 
     def inspect(self):
         self.pos="N"
@@ -601,24 +670,30 @@ class Composition:
 
     def runANcomposition(self):
 
-        ANfeattots=self.addAN(self.adjfeattots,self.nounfeattots)
+        self.ANfeattots=self.addAN(self.adjfeattots,self.nounfeattots)  #C<*,t,f>
+        self.ANtypetots=self.addAN(self.adjtypetots,self.nountypetots)  #C<*,t,*>
+       #print ANtypetots
 
-        ANtypetots=self.addAN(self.adjtypetots,self.nountypetots)
+        self.ANvecs={}
+        self.ANtots={}
+        self.ANpathtots={}
 
-        ANpathtots=self.addAN(self.adjpathtots,self.nounpathtots)
-        #print ANtypetots
+        if self.comppairfile:
+            for comppair in self.comppairlist:
+                 self.ANcompose(comppair[2],comppair[0])
 
-        ANvecs={}
-        ANtots={}
-        for adj in self.adjectives:
-            for noun in self.nouns:
-                (entry,ANvec,ANtot)=self.ANcompose(adj,noun)
-                ANvecs[entry]=ANvec
-                ANtots[entry]=ANtot
-                #print ANvecs,ANtots
+
+
+        else:
+
+            for adj in self.adjectives:
+                for noun in self.nouns:
+                    self.ANcompose(adj,noun)  #C<an,t,f>
+
+                    #print ANvecs,ANtots
 
         #check this
-        self.mostsalientvecs(ANvecs,ANpathtots,ANfeattots,ANtypetots,ANtots)
+        return self.mostsalientvecs(self.ANvecs,self.ANpathtots,self.ANfeattots,self.ANtypetots,self.ANtots)
 
     def getorder(self,feature):
         path=self.getpathtype(feature)
@@ -659,7 +734,7 @@ class Composition:
         for feature in adjvector.keys():
             (prefix,suffix)= self.splitfeature(feature)
             if prefix==adjPREFIX:
-                newfeature=suffix+":"+self.getpathvalue(feature)
+                newfeature=suffix+self.getpathvalue(feature)
             elif prefix.startswith("_"):
                 #incompatible feature for composition
                 #print "Incompatible feature for composition: "+feature
@@ -671,7 +746,9 @@ class Composition:
                 newfeature=nounPREFIX+"\xc2\xbb"+feature
             if not newfeature == "":
                 offsetvector[newfeature]=adjvector[feature]
+        #print "Features in original adj vector: "+str(len(adjvector.keys()))
         #print "Incompatible features in adjective vector: "+str(incomp)
+        #print "Features in offset adj vector: "+str(len(offsetvector.keys()))
         return offsetvector
 
 
@@ -683,6 +760,8 @@ class Composition:
         #print "Processing noun features "+str(len(nounvector.keys()))
         count=0
         intersect=[]
+        #print nounvector
+        #print adjvector
         for feature in nounvector.keys():
             count+=1
             if feature in offsetvector:
@@ -691,23 +770,25 @@ class Composition:
                 offsetvector.__delitem__(feature)
             else:
                 ANvector[feature]=nounvector[feature]
-            #if count%10000==0:print"Processed "+str(count)
+            if count%10000==0:print"Processed "+str(count)
+
         print "Intersecting features: "+str(len(intersect))
         #print "Processing remaining adj features "+str(len(adjvector.keys()))+" : reduced to : "+str(len(offsetvector.keys()))
-        count=0
         ANvector.update(offsetvector)
         #print "Complete"
-
         return ANvector
 
     def ANcompose(self,adj,noun):
         nounvector=self.nounvecs[noun]
         adjvector=self.adjvecs[adj]
         ANvector=self.addAN(adjvector,nounvector)
+        ANpathvector=self.addAN(self.adjpathtots[adj],self.nounpathtots[noun])
         ANtot=float(self.nountots[noun])+float(self.adjtots[adj])
-        entry=adj+" "+noun
+        entry=noun+":mod:"+adj
+        self.ANvecs[entry]=ANvector
+        self.ANpathtots[entry]=ANpathvector
+        self.ANtots[entry]=ANtot
 
-        return(entry,ANvector,ANtot)
 
     def intersect(self):
 
@@ -757,6 +838,10 @@ class Composition:
         else:
             return ""
 
+    def rewrite(self):
+        self.output(self.load_vectors(self.inpath),self.inpath+".new")
+
+
     def run(self):
 
         if self.option=="split":
@@ -777,6 +862,8 @@ class Composition:
             self.revectorise()
         elif self.option=="intersect":
             self.intersect()
+        elif self.option=="rewrite":
+            self.rewrite()
 
 
         else:
