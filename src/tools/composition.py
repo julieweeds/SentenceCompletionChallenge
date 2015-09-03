@@ -18,38 +18,53 @@ import graphing
 
 class Composition:
 
-    #datapath="~/Documents/workspace/ThesEval/data/wikiPOS_t100f100_nouns_deps"
-    datafile="wikipedia-lc2vectors.tsv"
+    datafile="wikipedia-lc2vectors.tsv"  #this stores a default datafile name which is usually ignored
     #datafile="wikiPOS.events"
-    filterfreq=1000
-    #nouns=["brush/n","shoot/n","rose/n","gift/n","conviction/n"]
+
+    filterfreq=1000 # this is the frequency threshold for filtering entry and feature totals (i.e., entries and features must have occurred this frequently)
+
     filterfile="senseneighbours1.json"
     filterfile=""
+
     #adjectives=["military/J"]
+    #nouns=["brush/n","shoot/n","rose/n","gift/n","conviction/n"]
     nouns=[]
     adjectives=[]
-    comppairfile="comppairs.json"
+
+    comppairfile="comppairs.json" #phrases to be composed - alternatively use nouns and adjectives for all pairs composition
     #comppairfile=""
-    includedtypes=["mod"]
-    includedtypes=[]
-    featmax=3
+
+    includedtypes=["mod"] #just this type of relation to be considered
+    includedtypes=[]  #all types of relation will be considered if this is empty
+    featmax=3  #how many features of each path type to display when showing most salient features
 
     def __init__(self,options):
+
+        # parameter0 = function
         self.option=options[0]
+
+        # parameter1 or default = original input file name (in current working directory)
         if len(options)>1:
             self.inpath=options[1]
         else:
             self.inpath=Composition.datafile
+
+        #suffixes for pos
         self.nounfile=self.inpath+".nouns"
         self.verbfile=self.inpath+".verbs"
         self.adjfile=self.inpath+".adjs"
         self.advfile=self.inpath+".advs"
         self.otherfile=self.inpath+".others"
 
+        #parameter2 = pos to be considered (necessary for all functions other than split).  If not given = N
         if len(options)>2:
             self.pos=options[2]
         else:
             self.pos="N"
+
+        #parameter3 = minimum order of dependency relation to include
+        #parameter4 = maximum order of dependency relation to include
+        #parameter3 can = X if you want to set further options without setting this (i.e., work with all orders given)
 
         if len(options)>3 and not options[3]=="X":
 
@@ -61,11 +76,16 @@ class Composition:
             self.maxorder=2
             self.reducedstring=""
 
+        #optional parameters.  Can be anywhere from parameter4 onwards
+        #type of ppmi calculation: default = ppmi, alternatives are gof_ppmi (where probabilities are calculated over all types rather than on a path type basis)
+        #   and pnppmi (where standard ppmi calculation is multiplied by path probability)
+        #normalised: this is required so that the result of the normalisation function can be used as input to a future function e.g. revectorisation or composition
+
         self.pp_normal= "pp_normalise" in options or "pnppmi" in options #include one of these flags in order for PPMI values to be multiplied by path probability in final vectors
         self.gof_ppmi="gof_ppmi" in options
-
         self.normalised = "normalise" in options or "normalised" in options #this may be the main option (to carry out normalisation) or be included as one of the optional options so that normalised counts are used
 
+        #these are dictionaries which will hold vectors and totals
         self.nounvecs={}
         self.adjvecs={}
         self.nountots={}
@@ -73,20 +93,29 @@ class Composition:
         self.adjtots={}
         self.adjfeattots={}
 
-        if self.comppairfile:
-            with open(Composition.comppairfile) as fp:
-                self.comppairlist=yaml.safe_load(fp)
-
-        else:
-            self.comppairlist=[]
-        print self.comppairlist
-        self.set_words()
-        self.includedtypes=Composition.includedtypes
+        #if present load phrases for composition
+        # and set words/paths of interest
         if Composition.comppairfile=="":
             self.comppairfile=False
         else:
             self.comppairfile=True
 
+        if self.comppairfile:
+            with open(Composition.comppairfile) as fp:
+                self.comppairlist = yaml.safe_load(fp)
+        else:
+            self.comppairlist=[]
+        self.set_words()
+        self.includedtypes=Composition.includedtypes
+
+    #----HELPER FUNCTIONS
+
+    #-----
+    # set the words of interest
+    #1) if self.comppairfile set, add the appropriate member of pair form self.comppairlist to self.words
+    #2) elseif filterfile not present, add any nouns/adjectives in defaults
+    # 3) elseif filterfile is present, add these words to self.words
+    #-----
     def set_words(self):
 
         if self.comppairfile:
@@ -101,11 +130,13 @@ class Composition:
 
 
         elif Composition.filterfile=="":
+            self.comppairfile=False
             if self.pos=="N":
                 self.words=Composition.nouns
             elif self.pos=="J":
                 self.words=Composition.adjectives
         else:
+            self.comppairfile=True
             with open(Composition.filterfile) as fp:
                 self.wordlistlist=yaml.safe_load(fp)
             self.words=[]
@@ -113,6 +144,129 @@ class Composition:
                 self.words+=wordlist
         print "Setting words of interest: ",self.words
 
+
+    #----
+    #boolean function as to whether a word is in self.words or self.words=[]
+    #-----
+    def include(self,word):
+        if len(self.words)==0:
+            return True
+        elif word in self.words:
+            return True
+        else:
+            return False
+
+    #---
+    #boolean function as to whether a pathtype is in self.includedtypes or self.includedtypes=[]
+    #----
+    def typeinclude(self,pathtype):
+        if self.includedtypes==[]:
+            return True
+        else:
+            return pathtype in self.includedtypes
+
+    #---
+    #generate the input file string according to POS
+    #---
+    def selectpos(self):
+        if self.pos=="N":
+            infile=self.nounfile
+        elif self.pos=="V":
+            infile=self.verbfile
+        elif self.pos=="J":
+            infile=self.adjfile
+        elif self.pos=="R":
+            infile=self.advfile
+        elif self.pos=="AN":
+            infile=self.inpath+".ans"
+        else:
+            infile=self.nounfile
+
+        return infile
+
+    #----
+    #get the path prefix / dependency path of a given feature
+    #self.getpathtype("amod:red") = amod
+    #self.getpathtype("_dobj>>amod:red") = _dobj>>amod
+    #----
+    def getpathtype(self,feature):
+        #get the path of a given feature
+        fields=feature.split(":")
+        return fields[0]
+
+    #----
+    #get the path value of a given feature
+    #self.getpathvalue("amod:red")=red
+    #self.getpathvalue("_dobj>>amod:red") = red
+    #----
+    def getpathvalue(self,feature):
+        fields=feature.split(":")
+        if len(fields)>1:
+            return ":"+fields[1]
+        else:
+            #print "No feature value for "+feature
+            return ""
+
+    #----
+    #get the order of a given feature
+    #----
+    def getorder(self,feature):
+        path=self.getpathtype(feature)
+
+        if path=="":
+            order=0
+        else:
+            fields=path.split("\xc2\xbb")
+            order=len(fields)
+
+        return order
+
+    #---
+    #split a higher order feature / find path prefix
+    #0th order e.g., :red => return ("","")
+    #1st order e.g., amod:red =>  return ("amod:red","")
+    #2nd order e.g., _dobj>>amod:red => return ("_dobj","amod:red:)
+    #3rd order e.g., nsubj>>_dobj>>amod:red => return ("nsubj","dobj>>amod:red")
+    #----
+    def splitfeature(self,feature):
+        path=self.getpathtype(feature)
+
+        if path=="":
+            return "",""
+        else:
+            fields=path.split("\xc2\xbb")
+
+
+            if len(fields)>1:
+                text=fields[1]
+                if len(fields)>2:
+                    for field in fields[2:]:
+                        text+="\xc2\xbb"+field
+                return fields[0],text
+            else:
+                return fields[0],""
+
+    #---
+    #turn alist into a string concatenated using the achar
+    #---
+    def join (self,alist,achar):
+        if len(alist)>1:
+            astring=alist[0]
+            for element in alist[1:]:
+                astring+=achar+element
+            return astring
+
+        elif len(alist)==1:
+            return alist[0]
+        else:
+            return ""
+
+    #----MAIN FUNCTIONS
+
+    #----
+    #SPLIT
+    #take the original gzipped file and split it by POS
+    #----
     def splitpos(self):
 
         nouns=open(self.nounfile,"w")
@@ -160,6 +314,15 @@ class Composition:
 
         return
 
+    #----
+    #REDUCEORDER
+    #generally used after SPLIT
+    #remove dependencies which do not have an order within the thresholds set by minorder and maxorder
+    #note that
+    # :gunman/N etc is considered to be a 0th order dependency
+    #_dobj:shoot/V is a 1st order dependency
+    # _dobj:nsubj:man/N is a 2nd order dependency
+    #-------
     def reduceorder(self):
 
         infile=self.selectpos()
@@ -190,111 +353,11 @@ class Composition:
                         #print "written out"
 
 
-    def include(self,word):
-        if len(self.words)==0:
-            return True
-        elif word in self.words:
-            return True
-        else:
-            return False
-
-    def filter(self):
-
-
-
-        infile = self.selectpos()+self.reducedstring
-        outfile=infile+".filtered"
-
-        coltotals= self.load_coltotals()
-        self.reducedstring=".reduce_1_1" #always use same rowtotals for filtering whatever the reduction
-        rowtotals = self.load_rowtotals()
-        outstream=open(outfile,"w")
-        print "Filtering for words ",self.words
-        print "Filtering for frequency ",Composition.filterfreq
-        todo=len(rowtotals)
-        with open(infile) as instream:
-            lines=0
-            for line in instream:
-                line = line.rstrip()
-                if lines%1000==0:
-                    percent=lines*100.0/todo
-                    print "Processing line "+str(lines)+"("+str(percent)+"%)"
-                lines+=1
-                fields=line.split("\t")
-                #entry=fields[0].lower()
-                entry=fields[0]
-                features=fields[1:]
-                entrytot=rowtotals.get(entry,0)
-                nofeats=0
-                if entrytot>Composition.filterfreq and self.include(entry):
-                    outline=entry
-                    #print "Filtering entry for "+entry
-                    while len(features)>0:
-                        freq=features.pop()
-                        #feat=features.pop().lower()
-                        feat=features.pop()
-                        feattot=float(coltotals.get(feat,0))
-                        #print feat+"\t"+str(feattot-Composition.filterfreq)
-
-                        if feattot>Composition.filterfreq:
-                            outline+="\t"+feat+"\t"+freq
-                            nofeats+=1
-
-                    if nofeats>0:
-                        outstream.write(outline+"\n")
-                else:
-                    print "Ignoring "+entry+" with frequency "+str(entrytot)
-
-        outstream.close()
-
-    def normalise(self):
-        rowtotals=self.load_rowtotals()
-        infile= self.selectpos()+self.reducedstring+".filtered"
-        outfile=infile+".norm"
-
-        print "Normalising counts => sum to 1"
-        outstream=open(outfile,"w")
-
-        todo=len(rowtotals.keys())
-        print "Estimated total vectors to do = "+str(todo)
-        with open(infile) as instream:
-            lines=0
-            for line in instream:
-
-                line = line.rstrip()
-                fields=line.split("\t")
-                entry=fields[0]
-                features=fields[1:]
-                entrytot=rowtotals[entry]
-                outline=entry
-                while len(features)>0:
-                    weight=float(features.pop())
-                    feat=features.pop()
-                    weight = weight/entrytot
-                    outline+="\t"+feat+"\t"+str(weight)
-                outline+="\n"
-                outstream.write(outline)
-                lines+=1
-                if lines%1000==0:
-                    percent=lines*100.0/todo
-                    print "Completed "+str(lines)+" vectors ("+str(percent)+"%)"
-        outstream.close()
-
-    def selectpos(self):
-        if self.pos=="N":
-            infile=self.nounfile
-        elif self.pos=="V":
-            infile=self.verbfile
-        elif self.pos=="J":
-            infile=self.adjfile
-        elif self.pos=="R":
-            infile=self.advfile
-        elif self.pos=="AN":
-            infile=self.inpath+".ans"
-        else:
-            infile=self.nounfile
-
-        return infile
+    #----
+    #MAKETOTALS
+    #calculate row and column totals
+    #this is usually done before filtering and also after filtering and normalisation
+    #------
 
     def maketotals(self):
 
@@ -349,6 +412,9 @@ class Composition:
         rows.close()
         cols.close()
 
+    #---
+    #subsequenct functions in pipeline can load pre-calcualated row totals using this function
+    #---
     def load_rowtotals(self):
         infile= self.selectpos()+self.reducedstring
         if self.normalised and not self.option=="normalise":
@@ -366,6 +432,9 @@ class Composition:
 
         return totals
 
+    #---
+    #subsequent functions in pipeline can load pre-calculated column totals using this function
+    #----
     def load_coltotals(self):
         infile=self.selectpos()+self.reducedstring
         if self.normalised and not self.option=="normalise":
@@ -382,12 +451,102 @@ class Composition:
         print "Loaded "+str(len(totals.keys()))
         return totals
 
-    def add(self,avector,bvector):
-        rvector=dict(avector)
-        for feat in bvector.keys():
-            rvector[feat]=rvector.get(feat,0)+bvector[feat]
-        return rvector
 
+    #---
+    #FILTER
+    #filter by frequency and by words of interest
+    #make sure filterfile and comppairfile etc are undefined if you want vectors for all words above threshold frequency
+    #no threshold on individual event frequencies, only on entry/row and feature/column totals.
+    #----
+    def filter(self):
+
+        infile = self.selectpos()+self.reducedstring
+        outfile=infile+".filtered"
+
+        coltotals= self.load_coltotals()
+        self.reducedstring=".reduce_1_1" #always use same rowtotals for filtering whatever the reduction
+        rowtotals = self.load_rowtotals()
+        outstream=open(outfile,"w")
+        print "Filtering for words ",self.words
+        print "Filtering for frequency ",Composition.filterfreq
+        todo=len(rowtotals)
+        with open(infile) as instream:
+            lines=0
+            for line in instream:
+                line = line.rstrip()
+                if lines%1000==0:
+                    percent=lines*100.0/todo
+                    print "Processing line "+str(lines)+"("+str(percent)+"%)"
+                lines+=1
+                fields=line.split("\t")
+                #entry=fields[0].lower()
+                entry=fields[0]
+                features=fields[1:]
+                entrytot=rowtotals.get(entry,0)
+                nofeats=0
+                if entrytot>Composition.filterfreq and self.include(entry):
+                    outline=entry
+                    #print "Filtering entry for "+entry
+                    while len(features)>0:
+                        freq=features.pop()
+                        #feat=features.pop().lower()
+                        feat=features.pop()
+                        feattot=float(coltotals.get(feat,0))
+                        #print feat+"\t"+str(feattot-Composition.filterfreq)
+
+                        if feattot>Composition.filterfreq:
+                            outline+="\t"+feat+"\t"+freq
+                            nofeats+=1
+
+                    if nofeats>0:
+                        outstream.write(outline+"\n")
+                else:
+                    print "Ignoring "+entry+" with frequency "+str(entrytot)
+
+        outstream.close()
+
+    #----
+    #NORMALISE
+    #this option normalises vectors so that they "sum to 1"
+    #however they won't actually sum to 1 as row totals are computed before filtering
+    #so necessary to call maketotals again after normalise
+    #-----
+    def normalise(self):
+        rowtotals=self.load_rowtotals()
+        infile= self.selectpos()+self.reducedstring+".filtered"
+        outfile=infile+".norm"
+
+        print "Normalising counts => sum to 1"
+        outstream=open(outfile,"w")
+
+        todo=len(rowtotals.keys())
+        print "Estimated total vectors to do = "+str(todo)
+        with open(infile) as instream:
+            lines=0
+            for line in instream:
+
+                line = line.rstrip()
+                fields=line.split("\t")
+                entry=fields[0]
+                features=fields[1:]
+                entrytot=rowtotals[entry]
+                outline=entry
+                while len(features)>0:
+                    weight=float(features.pop())
+                    feat=features.pop()
+                    weight = weight/entrytot
+                    outline+="\t"+feat+"\t"+str(weight)
+                outline+="\n"
+                outstream.write(outline)
+                lines+=1
+                if lines%1000==0:
+                    percent=lines*100.0/todo
+                    print "Completed "+str(lines)+" vectors ("+str(percent)+"%)"
+        outstream.close()
+
+    #---
+    #load in pre-filtered and (optionally) normalised vectors
+    #----
     def load_vectors(self,infile=""):
         if infile=="":
             infile=self.selectpos()+self.reducedstring+".filtered"
@@ -431,6 +590,10 @@ class Composition:
         print "Loaded "+str(len(vecs.keys()))+" vectors"
         return vecs
 
+    #----
+    #write a set of vectors to file
+    #these could be raw or PPMI vectors
+    #----
     def output(self,vectors,outfile):
         #write a set of vectors to file
         print "Writing vectors to output file: "+outfile
@@ -459,6 +622,13 @@ class Composition:
 
 
 
+
+    #----SALIENCY FUNCTIONS
+
+    #---
+    #use the totals for each feature to compute grand totals for each feature type (e.g., "amod")
+    #this is C<*,t,*> and is computed by S_f C<*,t,f>
+    #----
     def compute_typetotals(self,feattots):
         #compute totals for different paths over all entries (using column totals given in feattots)
         print "Computing path totals C<*,t,*>"
@@ -470,6 +640,11 @@ class Composition:
 
         return typetots
 
+    #--
+    #compute path totals for each noun
+    #i.e., C<w1,t,*>
+    #this is needed in the standard PPMI calculation we use
+    #----
     def compute_nounpathtotals(self,vectors):
         #compute totals for the different paths for each entry
         print "Computing path totals for each entry C<w1,t,*>"
@@ -485,64 +660,16 @@ class Composition:
             pathtotals[entry]=totalvector
         return pathtotals
 
-    def getpathtype(self,feature):
-        #get the path of a given feature
-        fields=feature.split(":")
-        return fields[0]
-
-    def getpathvalue(self,feature):
-        fields=feature.split(":")
-        if len(fields)>1:
-            return ":"+fields[1]
-        else:
-            #print "No feature value for "+feature
-            return ""
-
-    def mostsalient(self):
-        if self.pos=="N":
-            vecs=self.nounvecs
-            tots=self.nounpathtots
-            feattots=self.nounfeattots
-            typetots=self.nountypetots
-            entrytots=self.nountots
-        elif self.pos=="J":
-            vecs=self.adjvecs
-            tots=self.adjpathtots
-            feattots=self.adjfeattots
-            typetots=self.nountypetots
-            entrytots=self.adjtots
-
-        return self.mostsalientvecs(vecs,tots,feattots,typetots,entrytots)
-
-    def mostsalientvecs(self,vecs,pathtots,feattots,typetots,entrytots):
-
-        ppmivecs=self.computeppmi(vecs,pathtots,feattots,typetots,entrytots)
-        for entry in ppmivecs.keys():
-            print "Most salient features for "+entry+" , width: "+str(len(vecs[entry].keys()))+", "+str(len(ppmivecs[entry].keys()))
-            vector=ppmivecs[entry]
-            #print vector
-            feats=sorted(vector.items(),key=itemgetter(1),reverse=True)
-
-            donetypes={}
-
-            for tuple in feats:
-                feature=tuple[0]
-                pathtype=self.getpathtype(feature)
-                done=donetypes.get(pathtype,0)
-                if done<Composition.featmax and self.typeinclude(pathtype):
-                    print feature+" : "+str(tuple[1])+" ("+str(vecs[entry][feature])+")"
-                donetypes[pathtype]=done+1
-
-            print donetypes
-            print "-----"
-        return ppmivecs
-
-    def typeinclude(self,pathtype):
-        if self.includedtypes==[]:
-            return True
-        else:
-            return pathtype in self.includedtypes
-
+    #----
+    #compute ppmi (or similar) for a set of vectors and return new set of vectors
+    #@vecs: dict of dicts representing a set of vectors for which PPMI calculations to be carried out on i.e., vectors[w1][p:w2]=f  => C<w1,p,w2>=f
+    #@pathtotals: dict of dicts representing a set of totals indexed by entry and path i.e., pathtots[w1][p] = f => C<w1,p,*> = f
+    #@feattots: dict where feattots[p:w2]=f => C<*,p,w2>=f
+    #@typetots: dict where typetots[p]=f => C<*,p,*>=f
+    #@entrytots: dict where entrytots[w1]=f => C<w1,*,*>=f
+    #
+    #TODO: play with PPMI threshold and/or number of features
+    #-----
 
     def computeppmi(self,vecs,pathtots,feattots,typetots,entrytots):
 
@@ -567,10 +694,10 @@ class Composition:
             vector=vecs[entry]
             for feature in vector.keys():
                 freq=float(vector[feature])  # C<w1,p,w2>
-                total=float(pathtots[entry][self.getpathtype(feature)]) # S<w1,p,*>
-                feattot=float(feattots[feature]) #S<*,p,w2>
-                typetot=float(typetots[self.getpathtype(feature)]) #S<*,p,*>
-                entrytotal=float(entrytots[entry]) # S<w1,*,*>
+                total=float(pathtots[entry][self.getpathtype(feature)]) # C<w1,p,*>
+                feattot=float(feattots[feature]) #C<*,p,w2>
+                typetot=float(typetots[self.getpathtype(feature)]) #C<*,p,*>
+                entrytotal=float(entrytots[entry]) # C<w1,*,*>
 
                 if self.gof_ppmi:
 
@@ -595,6 +722,10 @@ class Composition:
             #print ppmivector
         return ppmivecs
 
+    #-----
+    #REVECTORISE
+    #load the appropriate vectors and totals files, compute more totals, compute PPMI and output the returned vectors
+    #------
     def revectorise(self):
 
         if self.normalised:
@@ -617,6 +748,81 @@ class Composition:
         ppmivecs=self.computeppmi(self.nounvecs,self.nounpathtots,self.nounfeattots,self.nountypetots,self.nountots)
         self.output(ppmivecs,outfile)
 
+
+    #---
+    #use POS to determine which vectors/totals to supply to self.mostsalientvecs
+    #----
+    def mostsalient(self):
+        if self.pos=="N":
+            vecs=self.nounvecs
+            tots=self.nounpathtots
+            feattots=self.nounfeattots
+            typetots=self.nountypetots
+            entrytots=self.nountots
+        elif self.pos=="J":
+            vecs=self.adjvecs
+            tots=self.adjpathtots
+            feattots=self.adjfeattots
+            typetots=self.nountypetots
+            entrytots=self.adjtots
+
+        return self.mostsalientvecs(vecs,tots,feattots,typetots,entrytots)
+
+    #---
+    #compute PPMI and then only retain the most salient features (up to featmax for each includedtype)
+    #does not modify ppmivectors
+    #primary purpose has been to compute complete vectors to output to file but display the most salient ones for inspection
+    #-----
+    def mostsalientvecs(self,vecs,pathtots,feattots,typetots,entrytots):
+
+        ppmivecs=self.computeppmi(vecs,pathtots,feattots,typetots,entrytots)
+        for entry in ppmivecs.keys():
+            print "Most salient features for "+entry+" , width: "+str(len(vecs[entry].keys()))+", "+str(len(ppmivecs[entry].keys()))
+            vector=ppmivecs[entry]
+            #print vector
+            feats=sorted(vector.items(),key=itemgetter(1),reverse=True)
+
+            donetypes={}
+
+            for tuple in feats:
+                feature=tuple[0]
+                pathtype=self.getpathtype(feature)
+                done=donetypes.get(pathtype,0)
+                if done<Composition.featmax and self.typeinclude(pathtype):
+                    print feature+" : "+str(tuple[1])+" ("+str(vecs[entry][feature])+")"
+                donetypes[pathtype]=done+1
+
+            print donetypes
+            print "-----"
+        return ppmivecs
+
+
+    #----
+    #INSPECT
+    #display the path distribution graph for a set of noun vectors and the most salient feature for those vectors
+    #-----
+    def inspect(self):
+        self.pos="N"
+        self.set_words()
+        self.nounfeattots=self.load_coltotals()
+        self.nountots=self.load_rowtotals()
+        self.nounvecs= self.load_vectors()
+        self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
+        self.nountypetots=self.compute_typetotals(self.nounfeattots)
+        print self.nountypetots
+        graphing.display_bargraph(self.nountypetots,title="Path Distribution over all Nouns")
+        for entry in self.nounvecs.keys():
+            title="Path Distribution for "+entry
+            graphing.display_bargraph(self.nounpathtots[entry],title)
+
+        self.mostsalient()
+
+    #----COMPOSITION FUNCTIONS
+
+    #----
+    #COMPOSE
+    #load appropriate vectors, display most salient features for each vector, then runANcomposition and output to file
+    #----
     def compose(self):
 
         if self.normalised:
@@ -652,22 +858,12 @@ class Composition:
 
         self.output(self.runANcomposition(),outfile)
 
-    def inspect(self):
-        self.pos="N"
-        self.set_words()
-        self.nounfeattots=self.load_coltotals()
-        self.nountots=self.load_rowtotals()
-        self.nounvecs= self.load_vectors()
-        self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
-        self.nountypetots=self.compute_typetotals(self.nounfeattots)
-        print self.nountypetots
-        graphing.display_bargraph(self.nountypetots,title="Path Distribution over all Nouns")
-        for entry in self.nounvecs.keys():
-            title="Path Distribution for "+entry
-            graphing.display_bargraph(self.nounpathtots[entry],title)
 
-        self.mostsalient()
 
+    #----
+    #run ANcompose for each adjective, noun pair of interest
+    #then run mostsalientvecs on ANvecs which cause PPMI to be computed, most salient features displayed and PPMI vectors returned for output
+    #----
     def runANcomposition(self):
 
         self.ANfeattots=self.addAN(self.adjfeattots,self.nounfeattots)  #C<*,t,f>
@@ -692,66 +888,29 @@ class Composition:
 
                     #print ANvecs,ANtots
 
-        #check this
+
         return self.mostsalientvecs(self.ANvecs,self.ANpathtots,self.ANfeattots,self.ANtypetots,self.ANtots)
 
-    def getorder(self,feature):
-        path=self.getpathtype(feature)
+    #----
+    #for a given adjective and noun, compute the compsed vector using addAN and the appropriate composed totals
+    #add these to the dicts for ANs
+    #----
+    def ANcompose(self,adj,noun):
+        nounvector=self.nounvecs[noun]
+        adjvector=self.adjvecs[adj]
+        ANvector=self.addAN(adjvector,nounvector)
+        ANpathvector=self.addAN(self.adjpathtots[adj],self.nounpathtots[noun])
+        ANtot=float(self.nountots[noun])+float(self.adjtots[adj])
+        entry=noun+":mod:"+adj
+        self.ANvecs[entry]=ANvector
+        self.ANpathtots[entry]=ANpathvector
+        self.ANtots[entry]=ANtot
 
-        if path=="":
-            order=0
-        else:
-            fields=path.split("\xc2\xbb")
-            order=len(fields)
-
-        return order
-
-    def splitfeature(self,feature):
-        path=self.getpathtype(feature)
-
-        if path=="":
-            return "",""
-        else:
-            fields=path.split("\xc2\xbb")
-
-
-            if len(fields)>1:
-                text=fields[1]
-                if len(fields)>2:
-                    for field in fields[2:]:
-                        text+="\xc2\xbb"+field
-                return fields[0],text
-            else:
-                return fields[0],""
-
-
-    def offsetAN(self,adjvector):
-        adjPREFIX="_mod"
-        nounPREFIX="mod"
-
-        offsetvector={}
-        incomp=0
-        for feature in adjvector.keys():
-            (prefix,suffix)= self.splitfeature(feature)
-            if prefix==adjPREFIX:
-                newfeature=suffix+self.getpathvalue(feature)
-            elif prefix.startswith("_"):
-                #incompatible feature for composition
-                #print "Incompatible feature for composition: "+feature
-                incomp+=1
-                newfeature=""
-            elif feature.startswith(":"):
-                newfeature=nounPREFIX+feature
-            else:
-                newfeature=nounPREFIX+"\xc2\xbb"+feature
-            if not newfeature == "":
-                offsetvector[newfeature]=adjvector[feature]
-        #print "Features in original adj vector: "+str(len(adjvector.keys()))
-        #print "Incompatible features in adjective vector: "+str(incomp)
-        #print "Features in offset adj vector: "+str(len(offsetvector.keys()))
-        return offsetvector
-
-
+    #----
+    #add an adjective vector to a noun vector (may be feature vectors or path vectors)
+    #do this by offsetting the adjective vector so that it is aligned with the noun vector
+    #then add noun vector to adjective vector
+    #----
     def addAN(self,adjvector,nounvector):
 
         offsetvector = self.offsetAN(adjvector)
@@ -778,17 +937,47 @@ class Composition:
         #print "Complete"
         return ANvector
 
-    def ANcompose(self,adj,noun):
-        nounvector=self.nounvecs[noun]
-        adjvector=self.adjvecs[adj]
-        ANvector=self.addAN(adjvector,nounvector)
-        ANpathvector=self.addAN(self.adjpathtots[adj],self.nounpathtots[noun])
-        ANtot=float(self.nountots[noun])+float(self.adjtots[adj])
-        entry=noun+":mod:"+adj
-        self.ANvecs[entry]=ANvector
-        self.ANpathtots[entry]=ANpathvector
-        self.ANtots[entry]=ANtot
+    #----
+    #offset an adjective vector so that it aligns with the noun vector it is modifying
+    #----
+    def offsetAN(self,adjvector):
+        adjPREFIX="_mod"
+        nounPREFIX="mod"
 
+        offsetvector={}
+        incomp=0
+        for feature in adjvector.keys():
+            (prefix,suffix)= self.splitfeature(feature)
+            if prefix==adjPREFIX:
+                newfeature=suffix+self.getpathvalue(feature)
+            elif prefix.startswith("_"):
+                #incompatible feature for composition
+                #print "Incompatible feature for composition: "+feature
+                incomp+=1
+                newfeature=""
+            elif feature.startswith(":"):
+                newfeature=nounPREFIX+feature
+            else:
+                newfeature=nounPREFIX+"\xc2\xbb"+feature
+            if not newfeature == "":
+                offsetvector[newfeature]=adjvector[feature]
+        #print "Features in original adj vector: "+str(len(adjvector.keys()))
+        #print "Incompatible features in adjective vector: "+str(incomp)
+        #print "Features in offset adj vector: "+str(len(offsetvector.keys()))
+        return offsetvector
+
+    #---
+    #add two vectors
+    #not used I think
+    #---
+    def add(self,avector,bvector):
+        rvector=dict(avector)
+        for feat in bvector.keys():
+            rvector[feat]=rvector.get(feat,0)+bvector[feat]
+        return rvector
+
+
+    #----OTHER FUNCTIONS
 
     def intersect(self):
 
@@ -826,22 +1015,12 @@ class Composition:
         return newvector
 
 
-    def join (self,alist,achar):
-        if len(alist)>1:
-            astring=alist[0]
-            for element in alist[1:]:
-                astring+=achar+element
-            return astring
 
-        elif len(alist)==1:
-            return alist[0]
-        else:
-            return ""
 
     def rewrite(self):
         self.output(self.load_vectors(self.inpath),self.inpath+".new")
 
-
+    #----main run function
     def run(self):
 
         if self.option=="split":
