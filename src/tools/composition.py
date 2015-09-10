@@ -12,7 +12,10 @@ __author__ = 'juliewe'
 
 
 
-import sys,math,gzip,yaml
+import sys,math,gzip
+#import yaml  #this needs to be imported for composition but doesn't appear possible to install on disco machine
+import json
+
 from operator import itemgetter
 import graphing
 
@@ -119,7 +122,8 @@ class Composition:
         #load and configure
         print "Reading configuration from "+filename
         with open(filename) as fp:
-            config=yaml.safe_load(fp)
+            config=json.load(fp,encoding="ascii")
+
 
         print config
         self.option=config.get("option","none")
@@ -139,9 +143,9 @@ class Composition:
         self.weighting=config.get("weighting","ppmi")
         self.pp_normal=(self.weighting=="pnppmi" or self.weighting=="pp_normalise")
         self.gof_ppmi=(self.weighting=="gof_ppmi")
-        self.normalised=config.get("normalised",False) or self.option=="normalise"
-        self.ppmithreshold=config.get("wthreshold",Composition.ppmithreshold)
-        self.filterfreq=config.get("fthreshold",Composition.filterfreq)
+        self.normalised=config.get("normalised","False")=="True" or self.option=="normalise"
+        self.ppmithreshold=float(config.get("wthreshold",Composition.ppmithreshold))
+        self.filterfreq=int(config.get("fthreshold",Composition.filterfreq))
         self.comppairfile=config.get("comppairfile",Composition.comppairfile)
         self.filterfile=config.get("filterfile",Composition.filterfile)
 
