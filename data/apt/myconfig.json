@@ -1,0 +1,10 @@
+{
+"option":"revectorise",
+"filename":"nyt.tsv",
+"pos":"N",
+"weighting":"ppmi",
+"minorder":1,
+"maxorder":1,
+"wthreshold":1.0,
+"normalised":False
+}

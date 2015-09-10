@@ -22,8 +22,8 @@ class Composition:
     #datafile="wikiPOS.events"
 
     filterfreq=1000 # this is the frequency threshold for filtering entry and feature totals (i.e., entries and features must have occurred this frequently)
-
-    filterfile="senseneighbours1.json"
+    ppmithreshold=0
+    #filterfile="senseneighbours1.json"
     filterfile=""
 
     #adjectives=["military/J"]
@@ -31,8 +31,8 @@ class Composition:
     nouns=[]
     adjectives=[]
 
-    comppairfile="comppairs.json" #phrases to be composed - alternatively use nouns and adjectives for all pairs composition
-    #comppairfile=""
+    #comppairfile="comppairs.json" #phrases to be composed - alternatively use nouns and adjectives for all pairs composition
+    comppairfile=""
 
     includedtypes=["mod"] #just this type of relation to be considered
     includedtypes=[]  #all types of relation will be considered if this is empty
@@ -40,51 +40,57 @@ class Composition:
 
     def __init__(self,options):
 
-        # parameter0 = function
-        self.option=options[0]
-
-        # parameter1 or default = original input file name (in current working directory)
-        if len(options)>1:
-            self.inpath=options[1]
+        if options[0] == "config":
+            self.configure(options[1]) # configure via configuration file
         else:
-            self.inpath=Composition.datafile
+            #configure via command line options
+            # parameter0 = function
+            self.option=options[0]
 
-        #suffixes for pos
+            # parameter1 or default = original input file name (in current working directory)
+            if len(options)>1:
+                self.inpath=options[1]
+            else:
+                self.inpath=Composition.datafile
+
+            #parameter2 = pos to be considered (necessary for all functions other than split).  If not given = N
+            if len(options)>2:
+                self.pos=options[2]
+            else:
+                self.pos="N"
+
+            #parameter3 = minimum order of dependency relation to include
+            #parameter4 = maximum order of dependency relation to include
+            #parameter3 can = X if you want to set further options without setting this (i.e., work with all orders given)
+
+            if len(options)>3 and not options[3]=="X":
+
+                self.minorder=int(options[3])
+                self.maxorder=int(options[4])
+                self.reducedstring=".reduce_"+str(self.minorder)+"_"+str(self.maxorder)
+            else:
+                self.minorder=0
+                self.maxorder=2
+                self.reducedstring=""
+
+            #optional parameters.  Can be anywhere from parameter4 onwards
+            #type of ppmi calculation: default = ppmi, alternatives are gof_ppmi (where probabilities are calculated over all types rather than on a path type basis)
+            #   and pnppmi (where standard ppmi calculation is multiplied by path probability)
+            #normalised: this is required so that the result of the normalisation function can be used as input to a future function e.g. revectorisation or composition
+
+            self.pp_normal= "pp_normalise" in options or "pnppmi" in options #include one of these flags in order for PPMI values to be multiplied by path probability in final vectors
+            self.gof_ppmi="gof_ppmi" in options
+            self.normalised = "normalise" in options or "normalised" in options #this may be the main option (to carry out normalisation) or be included as one of the optional options so that normalised counts are used
+
+            self.ppmithreshold=Composition.filterfreq
+            self.filterfreq=Composition.filterfreq
+
+          #suffixes for pos
         self.nounfile=self.inpath+".nouns"
         self.verbfile=self.inpath+".verbs"
         self.adjfile=self.inpath+".adjs"
         self.advfile=self.inpath+".advs"
         self.otherfile=self.inpath+".others"
-
-        #parameter2 = pos to be considered (necessary for all functions other than split).  If not given = N
-        if len(options)>2:
-            self.pos=options[2]
-        else:
-            self.pos="N"
-
-        #parameter3 = minimum order of dependency relation to include
-        #parameter4 = maximum order of dependency relation to include
-        #parameter3 can = X if you want to set further options without setting this (i.e., work with all orders given)
-
-        if len(options)>3 and not options[3]=="X":
-
-            self.minorder=int(options[3])
-            self.maxorder=int(options[4])
-            self.reducedstring=".reduce_"+str(self.minorder)+"_"+str(self.maxorder)
-        else:
-            self.minorder=0
-            self.maxorder=2
-            self.reducedstring=""
-
-        #optional parameters.  Can be anywhere from parameter4 onwards
-        #type of ppmi calculation: default = ppmi, alternatives are gof_ppmi (where probabilities are calculated over all types rather than on a path type basis)
-        #   and pnppmi (where standard ppmi calculation is multiplied by path probability)
-        #normalised: this is required so that the result of the normalisation function can be used as input to a future function e.g. revectorisation or composition
-
-        self.pp_normal= "pp_normalise" in options or "pnppmi" in options #include one of these flags in order for PPMI values to be multiplied by path probability in final vectors
-        self.gof_ppmi="gof_ppmi" in options
-        self.normalised = "normalise" in options or "normalised" in options #this may be the main option (to carry out normalisation) or be included as one of the optional options so that normalised counts are used
-
         #these are dictionaries which will hold vectors and totals
         self.nounvecs={}
         self.adjvecs={}
@@ -95,19 +101,51 @@ class Composition:
 
         #if present load phrases for composition
         # and set words/paths of interest
-        if Composition.comppairfile=="":
+        if self.comppairfile=="":
             self.comppairfile=False
         else:
             self.comppairfile=True
 
         if self.comppairfile:
-            with open(Composition.comppairfile) as fp:
+            with open(self.comppairfile) as fp:
                 self.comppairlist = yaml.safe_load(fp)
         else:
             self.comppairlist=[]
         self.set_words()
         self.includedtypes=Composition.includedtypes
 
+
+    def configure(self,filename):
+        #load and configure
+        print "Reading configuration from "+filename
+        with open(filename) as fp:
+            config=yaml.safe_load(fp)
+
+        print config
+        self.option=config.get("option","none")
+        self.inpath=config.get("filename",Composition.datafile)
+        self.pos=config.get("pos","N")
+        mini = config.get("minorder","X")
+        maxi = config.get("maxorder","X")
+        if mini == "X":
+            self.minorder=0
+            self.maxorder=2
+            self.reducedstring=""
+        else:
+            self.minorder=int(mini)
+            self.maxorder=int(maxi)
+            self.reducedstring=".reduce_"+str(mini)+"_"+str(maxi)
+
+        self.weighting=config.get("weighting","ppmi")
+        self.pp_normal=(self.weighting=="pnppmi" or self.weighting=="pp_normalise")
+        self.gof_ppmi=(self.weighting=="gof_ppmi")
+        self.normalised=config.get("normalised",False) or self.option=="normalise"
+        self.ppmithreshold=config.get("wthreshold",Composition.ppmithreshold)
+        self.filterfreq=config.get("fthreshold",Composition.filterfreq)
+        self.comppairfile=config.get("comppairfile",Composition.comppairfile)
+        self.filterfile=config.get("filterfile",Composition.filterfile)
+
+        return
     #----HELPER FUNCTIONS
 
     #-----
@@ -129,7 +167,7 @@ class Composition:
                     self.words.append(pair[index])
 
 
-        elif Composition.filterfile=="":
+        elif self.filterfile=="":
             self.comppairfile=False
             if self.pos=="N":
                 self.words=Composition.nouns
@@ -137,7 +175,7 @@ class Composition:
                 self.words=Composition.adjectives
         else:
             self.comppairfile=True
-            with open(Composition.filterfile) as fp:
+            with open(self.filterfile) as fp:
                 self.wordlistlist=yaml.safe_load(fp)
             self.words=[]
             for wordlist in self.wordlistlist:
@@ -426,7 +464,7 @@ class Composition:
             for line in instream:
                 line=line.rstrip()
                 fields=line.split("\t")
-                if self.normalised or float(fields[1])>Composition.filterfreq:
+                if self.normalised or float(fields[1])>self.filterfreq:
                     totals[fields[0]]=float(fields[1])
         print "Loaded "+str(len(totals.keys()))
 
@@ -446,7 +484,7 @@ class Composition:
             for line in instream:
                 line=line.rstrip()
                 fields=line.split("\t")
-                if self.normalised or float(fields[1])>Composition.filterfreq:
+                if self.normalised or float(fields[1])>self.filterfreq:
                     totals[fields[0]]=float(fields[1])
         print "Loaded "+str(len(totals.keys()))
         return totals
@@ -468,7 +506,7 @@ class Composition:
         rowtotals = self.load_rowtotals()
         outstream=open(outfile,"w")
         print "Filtering for words ",self.words
-        print "Filtering for frequency ",Composition.filterfreq
+        print "Filtering for frequency ",self.filterfreq
         todo=len(rowtotals)
         with open(infile) as instream:
             lines=0
@@ -484,7 +522,7 @@ class Composition:
                 features=fields[1:]
                 entrytot=rowtotals.get(entry,0)
                 nofeats=0
-                if entrytot>Composition.filterfreq and self.include(entry):
+                if entrytot>self.filterfreq and self.include(entry):
                     outline=entry
                     #print "Filtering entry for "+entry
                     while len(features)>0:
@@ -492,9 +530,9 @@ class Composition:
                         #feat=features.pop().lower()
                         feat=features.pop()
                         feattot=float(coltotals.get(feat,0))
-                        #print feat+"\t"+str(feattot-Composition.filterfreq)
+                        #print feat+"\t"+str(feattot-self.filterfreq)
 
-                        if feattot>Composition.filterfreq:
+                        if feattot>self.filterfreq:
                             outline+="\t"+feat+"\t"+freq
                             nofeats+=1
 
@@ -705,7 +743,7 @@ class Composition:
                 else:
                     pmi=math.log10((freq*typetot)/(feattot*total))
 
-                if pmi>0:
+                if pmi>self.ppmithreshold:
                     if self.pp_normal:
 
                         pmi=pmi * total/entrytotal
@@ -738,6 +776,8 @@ class Composition:
             suffix += ".gof_ppmi"
         else:
             suffix += ".ppmi"
+
+        suffix+="_"+str(self.ppmithreshold)
         outfile=self.selectpos()+self.reducedstring+".filtered"+suffix
         self.nounvecs=self.load_vectors()
         self.nounfeattots=self.load_coltotals()
