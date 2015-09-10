@@ -1049,5 +1049,17 @@ class Composition:
             print "Unknown option: "+self.option
 
 if __name__=="__main__":
+
+    #----
+    #example runs:
+    #python composition.py split filename
+    #python composition.py reduceorder filename N 1 2
+    #python composition.py maketotals filename N 1 2
+    #python composition.py filter filename N 1 2
+    #python composition.py normalise filename N 1 2
+    #python composition.py revectorise filename N 1 2 ppmi
+    #python composition.py compose filename AN 0 2 normalised pnppmi
+    #-----
+
     myComposer = Composition(sys.argv[1:])
     myComposer.run()
