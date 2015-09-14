@@ -13,7 +13,7 @@ __author__ = 'juliewe'
 
 
 import sys,math,gzip
-import yaml  #this needs to be imported for composition but doesn't appear possible to install on disco machine
+import yaml
 import json
 
 from operator import itemgetter
@@ -122,8 +122,8 @@ class Composition:
         #load and configure
         print "Reading configuration from "+filename
         with open(filename) as fp:
-            config=json.load(fp,encoding="ascii")
-
+            #config=json.load(fp,encoding="ascii")
+            config=yaml.safe_load(fp)
 
         print config
         self.option=config.get("option","none")
