@@ -109,12 +109,8 @@ class Composition:
 
         #if present load phrases for composition
         # and set words/paths of interest
-        if self.comppairfile=="":
-            self.comppairfile=False
-        else:
-            self.comppairfile=True
 
-        if self.comppairfile:
+        if self.comppairfile!="":
             with open(self.comppairfile) as fp:
                 self.comppairlist = yaml.safe_load(fp)
         else:
@@ -165,7 +161,7 @@ class Composition:
     #-----
     def set_words(self):
 
-        if self.comppairfile:
+        if self.comppairfile!="":
             if self.pos=="J":
                 index=2
             else:
@@ -177,13 +173,11 @@ class Composition:
 
 
         elif self.filterfile=="":
-            self.comppairfile=False
             if self.pos=="N":
                 self.words=Composition.nouns
             elif self.pos=="J":
                 self.words=Composition.adjectives
         else:
-            self.comppairfile=True
             with open(self.filterfile) as fp:
                 self.wordlistlist=yaml.safe_load(fp)
             self.words=[]
@@ -785,8 +779,8 @@ class Composition:
             suffix += ".gof_ppmi"
         else:
             suffix += ".ppmi"
-
-        suffix+="_"+str(self.ppmithreshold)
+        if self.ppmithreshold>0:
+            suffix+="_"+str(self.ppmithreshold)
         outfile=self.selectpos()+self.reducedstring+".filtered"+suffix
         self.nounvecs=self.load_vectors()
         self.nounfeattots=self.load_coltotals()
@@ -884,6 +878,8 @@ class Composition:
             suffix += ".gof_ppmi"
         else:
             suffix += ".ppmi"
+        if self.ppmithreshold>0:
+            suffix+="_"+str(self.ppmithreshold)
         outfile=self.selectpos()+self.reducedstring+".composed"+suffix
         self.pos="N"
         self.set_words()
