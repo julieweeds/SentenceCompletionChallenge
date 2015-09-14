@@ -13,7 +13,7 @@ __author__ = 'juliewe'
 
 
 import sys,math,gzip
-#import yaml  #this needs to be imported for composition but doesn't appear possible to install on disco machine
+import yaml  #this needs to be imported for composition but doesn't appear possible to install on disco machine
 import json
 
 from operator import itemgetter
