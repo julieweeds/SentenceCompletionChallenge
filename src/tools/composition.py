@@ -14,10 +14,15 @@ __author__ = 'juliewe'
 
 import sys,math,gzip
 import yaml
-import json
+#import json
 
 from operator import itemgetter
-#import graphing
+
+try:
+    import graphing
+except ImportError:
+    print "Warning: Unable to import graphing module"
+
 
 class Composition:
 
