@@ -5,7 +5,9 @@
 "weighting":"ppmi",
 "minorder":"1",
 "maxorder":"1",
-"wthreshold":"1.0",
-"normalised":"False"
+"wthreshold":"0.0",
+"saliency":100,
+"saliencyperpath":False,
+"normalised":"True"
 }
 

@@ -31,6 +31,8 @@ class Composition:
 
     filterfreq=1000 # this is the frequency threshold for filtering entry and feature totals (i.e., entries and features must have occurred this frequently)
     ppmithreshold=0
+    saliency=0
+    saliencyperpath=False
     #filterfile="senseneighbours1.json"
     filterfile=""
 
@@ -90,8 +92,10 @@ class Composition:
             self.gof_ppmi="gof_ppmi" in options
             self.normalised = "normalise" in options or "normalised" in options #this may be the main option (to carry out normalisation) or be included as one of the optional options so that normalised counts are used
 
-            self.ppmithreshold=Composition.filterfreq
+            self.ppmithreshold=Composition.ppmithreshold
             self.filterfreq=Composition.filterfreq
+            self.saliency=Composition.saliency
+            self.saliencyperpath=Composition.saliencyperpath
 
           #suffixes for pos
         self.nounfile=self.inpath+".nouns"
@@ -146,6 +150,8 @@ class Composition:
         self.gof_ppmi=(self.weighting=="gof_ppmi")
         self.normalised=config.get("normalised","False")=="True" or self.option=="normalise"
         self.ppmithreshold=float(config.get("wthreshold",Composition.ppmithreshold))
+        self.saliency=int(config.get("saliency",Composition.saliency))
+        self.saliencyperpath=config.get("saliencyperpath",Composition.saliencyperpath)
         self.filterfreq=int(config.get("fthreshold",Composition.filterfreq))
         self.comppairfile=config.get("comppairfile",Composition.comppairfile)
         self.filterfile=config.get("filterfile",Composition.filterfile)
@@ -759,7 +765,7 @@ class Composition:
 
 
 
-            ppmivecs[entry]=ppmivector
+            ppmivecs[entry]=self.mostsalient_vector(ppmivector)
             #print ppmivector
         return ppmivecs
 
@@ -781,6 +787,11 @@ class Composition:
             suffix += ".ppmi"
         if self.ppmithreshold>0:
             suffix+="_"+str(self.ppmithreshold)
+        if self.saliency>0:
+            if self.saliencyperpath:
+                suffix+=".spp_"+str(self.saliency)
+            else:
+                suffix+=".sal_"+str(self.saliency)
         outfile=self.selectpos()+self.reducedstring+".filtered"+suffix
         self.nounvecs=self.load_vectors()
         self.nounfeattots=self.load_coltotals()
@@ -839,7 +850,27 @@ class Composition:
             print "-----"
         return ppmivecs
 
+    #-----
+    #take a vector and retain only the most highly weighted features
+    #-----
+    def mostsalient_vector(self,ppmivector):
 
+        if self.saliency>0:
+            newvector={}
+            feats=sorted(ppmivector.items(),key=itemgetter(1),reverse=True)
+            donetypes={}
+            all=0
+            for tuple in feats:
+                feature=tuple[0]
+                pathtype=self.getpathtype(feature)
+                done=donetypes.get(pathtype,0)
+                if self.typeinclude(pathtype) and ((self.saliencyperpath and done<Composition.saliency)or(not self.saliencyperpath and all<Composition.saliency)):
+                    newvector[feature]=tuple[1]
+                    donetypes[pathtype]+=1
+                    all+=1
+            return newvector
+        else:
+            return ppmivector
     #----
     #INSPECT
     #display the path distribution graph for a set of noun vectors and the most salient feature for those vectors
@@ -880,6 +911,11 @@ class Composition:
             suffix += ".ppmi"
         if self.ppmithreshold>0:
             suffix+="_"+str(self.ppmithreshold)
+        if self.saliency>0:
+            if self.saliencyperpath:
+                suffix+=".spp_"+str(self.saliency)
+            else:
+                suffix+=".sal_"+str(self.saliency)
         outfile=self.selectpos()+self.reducedstring+".composed"+suffix
         self.pos="N"
         self.set_words()

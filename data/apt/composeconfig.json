@@ -1,0 +1,12 @@
+{
+"option":"compose",
+"filename":"nyt.tsv",
+"pos":"AN",
+"weighting":"ppmi",
+"minorder":"0",
+"maxorder":"2",
+"wthreshold":"3.0",
+"normalised":"True",
+"comppairfile":"comppairs.json"
+}
+
