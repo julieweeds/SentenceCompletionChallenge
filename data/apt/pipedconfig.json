@@ -1,5 +1,5 @@
 {
-"options":["split","reduce","maketotals","filter","normalise","maketotals","revectorise"],
+"options":["split","reduceorder","maketotals","filter","normalise","maketotals","revectorise"],
 "filename":"wikipedia2vectors.tsv",
 "pos":"V",
 "weighting":"ppmi",
@@ -7,5 +7,4 @@
 "maxorder":2,
 "wthreshold":0.0,
 "fthreshold":1000,
-"normalised":"True"
 }

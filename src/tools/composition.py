@@ -151,7 +151,7 @@ class Composition:
         self.weighting=config.get("weighting","ppmi")
         self.pp_normal=(self.weighting=="pnppmi" or self.weighting=="pp_normalise")
         self.gof_ppmi=(self.weighting=="gof_ppmi")
-        self.normalised=config.get("normalised","False")=="True" or self.option=="normalise"
+        self.normalised=config.get("normalised",False) or self.options[0]=="normalise"
         self.ppmithreshold=float(config.get("wthreshold",Composition.ppmithreshold))
         self.saliency=int(config.get("saliency",Composition.saliency))
         self.saliencyperpath=config.get("saliencyperpath",Composition.saliencyperpath)
@@ -603,6 +603,7 @@ class Composition:
                     percent=lines*100.0/todo
                     print "Completed "+str(lines)+" vectors ("+str(percent)+"%)"
         outstream.close()
+        self.normalised=True
 
     #---
     #load in pre-filtered and (optionally) normalised vectors
