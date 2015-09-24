@@ -1,6 +1,6 @@
 {
 "options":["split","reduce","maketotals","filter","normalise","maketotals","revectorise"],
-"filename":"nyt.tsv",
+"filename":"wikipedia2vectors.tsv",
 "pos":"V",
 "weighting":"ppmi",
 "minorder":0,
