@@ -1,0 +1,11 @@
+{
+"options":["split","reduce","maketotals","filter","normalise","maketotals","revectorise"],
+"filename":"nyt.tsv",
+"pos":"V",
+"weighting":"ppmi",
+"minorder":0,
+"maxorder":2,
+"wthreshold":0.0,
+"fthreshold":1000,
+"normalised":"True"
+}

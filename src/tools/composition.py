@@ -40,6 +40,9 @@ class Composition:
     #nouns=["brush/n","shoot/n","rose/n","gift/n","conviction/n"]
     nouns=[]
     adjectives=[]
+    verbs=[]
+    adverbs=[]
+    others=[]
 
     #comppairfile="comppairs.json" #phrases to be composed - alternatively use nouns and adjectives for all pairs composition
     comppairfile=""
@@ -55,7 +58,7 @@ class Composition:
         else:
             #configure via command line options
             # parameter0 = function
-            self.option=options[0]
+            self.options=[options[0]]
 
             # parameter1 or default = original input file name (in current working directory)
             if len(options)>1:
@@ -131,7 +134,7 @@ class Composition:
             config=yaml.safe_load(fp)
 
         print config
-        self.option=config.get("option","none")
+        self.options=config.get("options",config.get("option",[]))
         self.inpath=config.get("filename",Composition.datafile)
         self.pos=config.get("pos","N")
         mini = config.get("minorder","X")
@@ -183,6 +186,12 @@ class Composition:
                 self.words=Composition.nouns
             elif self.pos=="J":
                 self.words=Composition.adjectives
+            elif self.pos=="V":
+                self.words=Composition.verbs
+            elif self.pos=="R":
+                self.words=Composition.adverbs
+            else:
+                self.words=Composition.others
         else:
             with open(self.filterfile) as fp:
                 self.wordlistlist=yaml.safe_load(fp)
@@ -325,40 +334,44 @@ class Composition:
 
         infile=self.inpath+".gz"
 
+        try:
+            instream=gzip.open(infile)
+        except:
+            instream=open(self.inpath)
 
-        with gzip.open(infile) as instream:
-            lines=0
-            for line in instream:
 
-                line=line.rstrip()
-                entry=line.split("\t")[0]
+        lines=0
+        for line in instream:
 
-                try:
-                    pos=entry.split("/")[-1].lower()
-                except:
-                    print "Cannot split "+entry+" on line "+str(lines)
-                    pos=""
+            line=line.rstrip()
+            entry=line.split("\t")[0]
 
-                #pos=entry.split("/")[-1].lower()
-                if pos.startswith("n"):
-                    nouns.write(line+"\n")
-                elif pos.startswith("v"):
-                    verbs.write(line+"\n")
-                elif pos.startswith("j"):
-                    adjs.write(line+"\n")
-                elif pos.startswith("r"):
-                    advs.write(line+"\n")
-                else:
-                    others.write(line+"\n")
-                if lines % 1000==0:print "Processed "+str(lines)+" lines"
-                lines+=1
+            try:
+                pos=entry.split("/")[-1].lower()
+            except:
+                print "Cannot split "+entry+" on line "+str(lines)
+                pos=""
+
+            #pos=entry.split("/")[-1].lower()
+            if pos.startswith("n"):
+                nouns.write(line+"\n")
+            elif pos.startswith("v"):
+                verbs.write(line+"\n")
+            elif pos.startswith("j"):
+                adjs.write(line+"\n")
+            elif pos.startswith("r"):
+                advs.write(line+"\n")
+            else:
+                others.write(line+"\n")
+            if lines % 1000==0:print "Processed "+str(lines)+" lines"
+            lines+=1
 
         nouns.close()
         verbs.close()
         adjs.close()
         advs.close()
         others.close()
-
+        instream.close()
         return
 
     #----
@@ -1104,30 +1117,37 @@ class Composition:
     #----main run function
     def run(self):
 
-        if self.option=="split":
-            self.splitpos()
-        elif self.option=="reduceorder":
-            self.reduceorder()
-        elif self.option=="maketotals":
-            self.maketotals()
-        elif self.option =="filter":
-            self.filter()
-        elif self.option == "normalise":
-            self.normalise()
-        elif self.option=="compose":
-            self.compose()
-        elif self.option=="inspect":
-            self.inspect()
-        elif self.option=="revectorise":
-            self.revectorise()
-        elif self.option=="intersect":
-            self.intersect()
-        elif self.option=="rewrite":
-            self.rewrite()
+        while len(self.options)>0:
+            self.option=self.options[0]
+            self.options=self.options[1:]
+
+            print "Stage: "+self.option
+            if self.option=="split":
+                self.splitpos()
+            elif self.option=="reduceorder":
+                self.reduceorder()
+            elif self.option=="maketotals":
+                self.maketotals()
+            elif self.option =="filter":
+                self.filter()
+            elif self.option == "normalise":
+                self.normalise()
+            elif self.option=="compose":
+                self.compose()
+            elif self.option=="inspect":
+                self.inspect()
+            elif self.option=="revectorise":
+                self.revectorise()
+            elif self.option=="intersect":
+                self.intersect()
+            elif self.option=="rewrite":
+                self.rewrite()
 
 
-        else:
-            print "Unknown option: "+self.option
+            else:
+                print "Unknown option: "+self.option
+
+
 
 if __name__=="__main__":
 
