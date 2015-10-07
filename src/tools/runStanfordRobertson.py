@@ -12,7 +12,6 @@ class ParsingPipeline(PythonParser):
         self.whereami=self.config.get('default','whereami')
         self.stanford_dir=self.config.get(self.whereami,'stanford_dir')
         self.data_dir=self.config.get(self.whereami,'data_dir')
-        self.robertson_dir=self.config.get(self.whereami,'robertson_dir')
         self.robertson_jar=self.config.get('default','robertson_jar')
         self.java_threads=self.config.get('default','java_threads')
         self.options=['tokenize','ssplit','pos','lemma','ner']
@@ -24,7 +23,7 @@ class ParsingPipeline(PythonParser):
 
     def run_robertson_parser(self):
 
-        os.chdir(self.robertson_dir)
+        os.chdir(self.working_dir)
         robertson_command=["java","-mx16g","-jar",self.robertson_jar,self.output_dir]
         print "<%s> Running Robertson parser with command: %s" %(current_time(),str(robertson_command))
         subprocess.call(robertson_command)

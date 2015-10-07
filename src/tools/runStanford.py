@@ -15,12 +15,16 @@ class PythonParser:
         self.whereami=self.config.get('default','whereami')
         self.stanford_dir=self.config.get(self.whereami,'stanford_dir')
         self.data_dir=self.config.get(self.whereami,'data_dir')
+        self.working_dir=self.config.get(self.whereami,'working_dir')
+
         self.java_threads=self.config.get('default','java_threads')
         self.options=ast.literal_eval(self.config.get('default','options'))
+
         self.outext=self.config.get('default','outextension')
         self.output_dir = self.data_dir+'-'+self.outext
         self.outputformat=self.config.get('default','outputformat')
         self.inputformat=self.config.get('default','inputformat')
+        self.data_dir=self.data_dir+"-"+self.inputformat
         #self.conll_dir=self.output_dir+'-conll'
         self.testinglevel=float(self.config.get('default','testinglevel'))
         self.mode=self.config.get('default','mode')  #no_overwrite for not overwriting output files which are non-empty
@@ -129,7 +133,7 @@ class PythonParser:
      #                                      data_file.endswith(".conll")))
 
         for data_file in [df for df in os.listdir(data_sub_dir) if not (df.startswith(".") or df.endswith(".conll"))]:
-            if self.outext=='parsed':
+            if self.outext.endswith('parsed'):
                 self._process_single_xml_with_deps_to_conll(os.path.join(data_sub_dir,data_file))
             else:
                 self._process_single_xml__to_conll(os.path.join(data_sub_dir,data_file))
@@ -212,9 +216,17 @@ class PythonParser:
             except:
                 pass #ignore this (probably empty) file
 
-    def stripxml(selfs):
-        return
+    def stripxml(self):
+        os.chdir(self.working_dir)
+        self.tags=ast.literal_eval(self.config.get('default','xmltags'))
+        strip_command=["java","-mx4g","-jar",self.config.get('default','xmlstripper_jar'),self.data_dir]+self.tags
+        print "<%s> Running xml stripper with command: %s" %(current_time(),str(strip_command))
+        subprocess.call(strip_command)
+        print "<%s> XML stripping complete for path: %s" %(current_time(),self.data_dir)
+        self.data_dir=self.data_dir.replace("xml","raw")
+
     def run(self):
+
         if self.inputformat=='xml':
             self.stripxml()
         if len(self.options)>0:
