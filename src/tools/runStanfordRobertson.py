@@ -17,6 +17,7 @@ class ParsingPipeline(PythonParser):
         self.java_threads=self.config.get('default','java_threads')
         self.options=['tokenize','ssplit','pos','lemma','ner']
         self.outext="tagged"
+        self.outputformat="conll"
         self.output_dir = self.data_dir+'-'+self.outext
         self.testinglevel=float(self.config.get('default','testinglevel'))
         self.mode=self.config.get('default','mode')  #no_overwrite for not overwriting output files which are non-empty
@@ -30,9 +31,7 @@ class ParsingPipeline(PythonParser):
         print "<%s> Robertson parser complete for path: %s" %(current_time(),self.output_dir)
 
     def run(self):
-
-        self.run_stanford_pipeline()
-        self.process_corpora_from_xml()
+        super(ParsingPipeline,self).run()
         self.run_robertson_parser()
 
 

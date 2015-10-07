@@ -19,6 +19,8 @@ class PythonParser:
         self.options=ast.literal_eval(self.config.get('default','options'))
         self.outext=self.config.get('default','outextension')
         self.output_dir = self.data_dir+'-'+self.outext
+        self.outputformat=self.config.get('default','outputformat')
+        self.inputformat=self.config.get('default','inputformat')
         #self.conll_dir=self.output_dir+'-conll'
         self.testinglevel=float(self.config.get('default','testinglevel'))
         self.mode=self.config.get('default','mode')  #no_overwrite for not overwriting output files which are non-empty
@@ -210,11 +212,14 @@ class PythonParser:
             except:
                 pass #ignore this (probably empty) file
 
-
+    def stripxml(selfs):
+        return
     def run(self):
+        if self.inputformat=='xml':
+            self.stripxml()
         if len(self.options)>0:
             self.run_stanford_pipeline()
-        if self.config.get('default','outputformat')=='conll':
+        if self.outputformat=='conll':
             self.process_corpora_from_xml()
 
 
