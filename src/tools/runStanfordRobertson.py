@@ -30,7 +30,7 @@ class ParsingPipeline(PythonParser):
         print "<%s> Robertson parser complete for path: %s" %(current_time(),self.output_dir)
 
     def run(self):
-        super(ParsingPipeline,self).run()
+        self.runPipeline()
         self.run_robertson_parser()
 
 

@@ -225,7 +225,7 @@ class PythonParser:
         print "<%s> XML stripping complete for path: %s" %(current_time(),self.data_dir)
         self.data_dir=self.data_dir.replace("xml","raw")
 
-    def run(self):
+    def runPipeline(self):
 
         if self.inputformat=='xml':
             self.stripxml()
@@ -234,6 +234,8 @@ class PythonParser:
         if self.outputformat=='conll':
             self.process_corpora_from_xml()
 
+    def run(self):
+        self.runPipeline()
 
 if __name__=='__main__':
 
