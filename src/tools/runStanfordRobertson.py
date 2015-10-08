@@ -19,7 +19,9 @@ class ParsingPipeline(PythonParser):
         self.outext="tagged"
         self.outputformat="conll"
         self.inputformat=self.config.get('default','inputformat')
+
         self.output_dir = self.data_dir+'-'+self.outext
+        self.data_dir=self.dat_dir+"-"+self.inputformat
         self.testinglevel=float(self.config.get('default','testinglevel'))
         self.mode=self.config.get('default','mode')  #no_overwrite for not overwriting output files which are non-empty
 
