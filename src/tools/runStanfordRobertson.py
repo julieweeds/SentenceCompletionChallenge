@@ -12,11 +12,13 @@ class ParsingPipeline(PythonParser):
         self.whereami=self.config.get('default','whereami')
         self.stanford_dir=self.config.get(self.whereami,'stanford_dir')
         self.data_dir=self.config.get(self.whereami,'data_dir')
+        self.working_dir=self.config.get(self.whereami,'working_dir')
         self.robertson_jar=self.config.get('default','robertson_jar')
         self.java_threads=self.config.get('default','java_threads')
         self.options=['tokenize','ssplit','pos','lemma','ner']
         self.outext="tagged"
         self.outputformat="conll"
+        self.inputformat=self.config.get('default','inputformat')
         self.output_dir = self.data_dir+'-'+self.outext
         self.testinglevel=float(self.config.get('default','testinglevel'))
         self.mode=self.config.get('default','mode')  #no_overwrite for not overwriting output files which are non-empty
