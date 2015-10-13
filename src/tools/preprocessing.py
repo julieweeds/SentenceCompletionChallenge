@@ -18,7 +18,7 @@ def configure(arguments):
     else:
         parameters["option"]=arguments[1]
         parameters["filename"]=arguments[2]
-    if len(arguments)>3:
+    if len(arguments)>2:
         if parameters["option"]=="split":
             parameters["splits"]=int(arguments[3])
         else:
