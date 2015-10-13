@@ -177,7 +177,7 @@ class PythonParser:
 
 
                         for (word,lemma,pos,ner) in tuples:
-                            outfile.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
+                            outfile.write(self._get_string_with_deps(
                                 i, word.text.encode('utf8'), lemma.text.encode('utf8'),
                                 pos.text, ner.text,giddict.get(str(i),''),reldict.get(str(i),'')))
                             i += 1
@@ -187,7 +187,11 @@ class PythonParser:
             except Exception:
                 pass #ignore this file
 
-
+    def _get_string_with_deps(self,index, word,lemma,pos,ner,gov,rel):
+        if self.outputformat=='conll_apt':
+            return "%s\t%s/%s\t%s\t%s" % (index,word,pos,gov,rel)
+        else:
+            return "%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (index,word,lemma,pos,ner,gov,rel)
 
 
     def _process_single_xml__to_conll(self,path_to_file):
@@ -231,7 +235,7 @@ class PythonParser:
             self.stripxml()
         if len(self.options)>0:
             self.run_stanford_pipeline()
-        if self.outputformat=='conll':
+        if self.outputformat.startswith('conll'):
             self.process_corpora_from_xml()
 
     def run(self):

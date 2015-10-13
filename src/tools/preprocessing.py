@@ -4,7 +4,7 @@ __author__ = 'juliewe'
 #-> convertCONLL
 #: takes general CONLL format and converts it into APT input format
 
-import sys,gzip
+import sys,gzip,os
 
 
 def configure(arguments):
@@ -43,8 +43,8 @@ class Converter:
         self.linelength=self.parameters.get('linelength',10)
         self.maxlength=self.parameters.get('maxlength',500)
         self.lowercasing=self.parameters.get('lowercasing',False)
-        self.prefix="output."
-        if self.lowercasing: self.prefix+="lc."
+        self.prefix="aptInput-"
+        if self.lowercasing: self.prefix+="lc-"
 
     def processline(self,line,outstream,data):
 
@@ -99,9 +99,17 @@ class Converter:
         return data
 
 
-    def convert(self):
-        inname=self.parameters["filename"]
-        outname=getOutputName(inname,self.prefix)
+    def convertdir(self):
+        indir=self.parameters["filename"]
+
+        for datafile in [df for df in os.listdir(indir)]:
+            outfile=getOutputName(datafile,self.prefix)
+            self.convert(datafile,outfile)
+
+
+    def convert(self, inname,outname):
+
+
         print "Converting "+inname+" and writing to "+outname
         print "Lowercasing: ",self.lowercasing
         data=self.init_data()
@@ -158,8 +166,13 @@ class Converter:
 
 
     def run(self):
+        inname=self.parameters["filename"]
+        outname=getOutputName(inname,self.prefix)
+
         if self.parameters["option"]=="convert":
-            self.convert()
+            self.convert(inname,outname)
+        elif self.parameters["option"]=="convertdir":
+            self.convertdir()
         elif self.parameters["option"]=="analyse":
             self.analyse()
         elif self.parameters["option"]=="split":
