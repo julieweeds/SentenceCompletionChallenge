@@ -45,8 +45,6 @@ class Converter:
         self.lowercasing=self.parameters.get('lowercasing',False)
         self.prefix="aptInput-"
         if self.lowercasing: self.prefix+="lc-"
-        self.prefix="output."
-        if self.lowercasing: self.prefix+="lc."
         if self.linelength==10:
             self.deppos=6
             self.labelpos=7
