@@ -92,7 +92,6 @@ class Converter:
         data['maxmaxindex']=0
         data['maxindex_sentpos']=-1
         data['maxindex_linepos']=-1
-        data['currentmaxindex']=-1
         data['currentlines']=0
         data['currentindex']=0
         data['sentences']=0
