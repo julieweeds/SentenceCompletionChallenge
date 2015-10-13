@@ -46,6 +46,12 @@ class Converter:
         self.lowercasing=self.parameters.get('lowercasing',False)
         self.prefix="output."
         if self.lowercasing: self.prefix+="lc."
+        if self.linelength==10:
+            self.deppos=6
+            self.labelpos=7
+        if self.linelength==7:
+            self.deppos=5
+            self.labelpos=6
 
     def processline(self,line,outstream,data):
 
@@ -57,8 +63,8 @@ class Converter:
                 if self.lowercasing:
                     word=word.lower()
                 pos=fields[3]
-                dep = fields[6]
-                label = fields[7]
+                dep = fields[self.deppos]
+                label = fields[self.labelpos]
                 newline=index+"\t"+word+"/"+pos+"\t"+dep+"\t"+label+"\n"
                 data['buffer']+=newline
             data['currentlines']=data['currentlines']+1
