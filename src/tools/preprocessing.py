@@ -9,6 +9,7 @@ import sys,gzip
 
 def configure(arguments):
 
+    print arguments
     parameters={}
     parameters['maxlength']=500
     parameters['lowercasing']=True
