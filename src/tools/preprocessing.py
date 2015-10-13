@@ -39,6 +39,7 @@ def getOutputName(filepath,prefix):
 class Converter:
 
     def __init__(self,parameters):
+        print parameters
         self.parameters=parameters
         self.linelength=self.parameters.get('linelength',10)
         self.maxlength=self.parameters.get('maxlength',500)
@@ -92,6 +93,7 @@ class Converter:
         data['maxmaxindex']=0
         data['maxindex_sentpos']=-1
         data['maxindex_linepos']=-1
+        data['currentmaxindex']=-1
         data['currentlines']=0
         data['currentindex']=0
         data['sentences']=0
@@ -100,6 +102,7 @@ class Converter:
 
 
     def convert(self):
+
         inname=self.parameters["filename"]
         outname=getOutputName(inname,self.prefix)
         print "Converting "+inname+" and writing to "+outname
