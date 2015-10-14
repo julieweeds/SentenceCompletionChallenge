@@ -28,13 +28,17 @@ class ParsingPipeline(PythonParser):
     def run_robertson_parser(self):
 
         os.chdir(self.working_dir)
+
         robertson_command=["java","-mx16g","-jar",self.robertson_jar,self.output_dir]
         print "<%s> Running Robertson parser with command: %s" %(current_time(),str(robertson_command))
         subprocess.call(robertson_command)
         print "<%s> Robertson parser complete for path: %s" %(current_time(),self.output_dir)
 
     def run(self):
-        self.runPipeline()
+        if self.inputformat!="sfd_parsed":
+            self.runPipeline()
+        else:
+            self.output_dir=self.data_dir
         self.run_robertson_parser()
 
 
