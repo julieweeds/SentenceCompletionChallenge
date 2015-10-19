@@ -35,7 +35,7 @@ class ParsingPipeline(PythonParser):
         print "<%s> Robertson parser complete for path: %s" %(current_time(),self.output_dir)
 
     def run(self):
-        if self.inputformat!="sfd_parsed":
+        if self.inputformat!="sfd_parsed" and self.inputformat!="tagged":
             self.runPipeline()
         else:
             self.output_dir=self.data_dir

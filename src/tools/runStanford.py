@@ -91,7 +91,7 @@ class PythonParser:
                             '-filelist',filelist,
                             '-outputDirectory',output_sub_dir,
                             '-threads', str(self.java_threads),
-                            '-outputFormat','xml',
+                            '-outputFormat',self.outputformat,
                             '-outputExtension',ext]
 
             print "Running: \n"+str(stanford_cmd)
@@ -235,8 +235,10 @@ class PythonParser:
             self.stripxml()
         if len(self.options)>0:
             self.run_stanford_pipeline()
-        if self.outputformat.startswith('conll'):
-            self.process_corpora_from_xml()
+
+        #should be able to use the conll flag in stanford and then clean up the output to something more like that expected by Robertson parser or APT software
+        #if self.outputformat.startswith('conll'):
+        #    self.process_corpora_from_xml()
 
     def run(self):
         self.runPipeline()
