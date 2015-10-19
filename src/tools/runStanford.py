@@ -91,7 +91,7 @@ class PythonParser:
                             '-filelist',filelist,
                             '-outputDirectory',output_sub_dir,
                             '-threads', str(self.java_threads),
-                            '-outputFormat',self.outputformat,
+                            '-outputFormat','xml',
                             '-outputExtension',ext]
 
             print "Running: \n"+str(stanford_cmd)
