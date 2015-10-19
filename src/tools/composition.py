@@ -130,7 +130,7 @@ class Composition:
         config=ConfigParser.RawConfigParser()
         config.read(filename)
 
-        self.options=config.get('default','options')
+        self.options=ast.literal_eval(config.get('default','options'))
 
         self.inpath=config.get('default','filename')
         self.pos=config.get('default','pos')
