@@ -12,8 +12,8 @@ __author__ = 'juliewe'
 
 
 
-import sys,math,gzip
-import yaml
+import sys,math,gzip,ast
+import ConfigParser
 #import json
 
 from operator import itemgetter
@@ -23,33 +23,28 @@ try:
 except ImportError:
     print "Warning: Unable to import graphing module"
 
+try:
+    import yaml
+except ImportError:
+    print "Warning: Unable to import yaml for reading composition pair file"
+
 
 class Composition:
 
-    datafile="wikipedia-lc2vectors.tsv"  #this stores a default datafile name which is usually ignored
-    #datafile="wikiPOS.events"
 
-    filterfreq=1000 # this is the frequency threshold for filtering entry and feature totals (i.e., entries and features must have occurred this frequently)
-    ppmithreshold=0
-    saliency=0
-    saliencyperpath=False
-    #filterfile="senseneighbours1.json"
-    filterfile=""
-
-    #adjectives=["military/J"]
-    #nouns=["brush/n","shoot/n","rose/n","gift/n","conviction/n"]
     nouns=[]
     adjectives=[]
     verbs=[]
     adverbs=[]
     others=[]
 
-    #comppairfile="comppairs.json" #phrases to be composed - alternatively use nouns and adjectives for all pairs composition
-    comppairfile=""
-
-    includedtypes=["mod"] #just this type of relation to be considered
     includedtypes=[]  #all types of relation will be considered if this is empty
     featmax=3  #how many features of each path type to display when showing most salient features
+
+    ppmithreshold=0
+    filterfreq=1000
+    saliency=0
+    saliencyperpath=False
 
     def __init__(self,options):
 
@@ -64,7 +59,7 @@ class Composition:
             if len(options)>1:
                 self.inpath=options[1]
             else:
-                self.inpath=Composition.datafile
+                print "Requires the base filename as second input"
 
             #parameter2 = pos to be considered (necessary for all functions other than split).  If not given = N
             if len(options)>2:
@@ -129,16 +124,18 @@ class Composition:
     def configure(self,filename):
         #load and configure
         print "Reading configuration from "+filename
-        with open(filename) as fp:
+        #with open(filename) as fp:
             #config=json.load(fp,encoding="ascii")
-            config=yaml.safe_load(fp)
+        #    config=yaml.safe_load(fp)
+        config=ConfigParser.RawConfigParser()
+        config.read(filename)
 
-        print config
-        self.options=config.get("options",config.get("option",[]))
-        self.inpath=config.get("filename",Composition.datafile)
-        self.pos=config.get("pos","N")
-        mini = config.get("minorder","X")
-        maxi = config.get("maxorder","X")
+        self.options=config.get('default','options')
+
+        self.inpath=config.get('default','filename')
+        self.pos=config.get('default','pos')
+        mini = config.get('default','minorder')
+        maxi = config.get('default','maxorder')
         if mini == "X":
             self.minorder=0
             self.maxorder=2
@@ -148,16 +145,17 @@ class Composition:
             self.maxorder=int(maxi)
             self.reducedstring=".reduce_"+str(mini)+"_"+str(maxi)
 
-        self.weighting=config.get("weighting","ppmi")
+        self.weighting=config.get('default','weighting')
         self.pp_normal=(self.weighting=="pnppmi" or self.weighting=="pp_normalise")
         self.gof_ppmi=(self.weighting=="gof_ppmi")
-        self.normalised=config.get("normalised",False) or self.options[0]=="normalise"
-        self.ppmithreshold=float(config.get("wthreshold",Composition.ppmithreshold))
-        self.saliency=int(config.get("saliency",Composition.saliency))
-        self.saliencyperpath=config.get("saliencyperpath",Composition.saliencyperpath)
-        self.filterfreq=int(config.get("fthreshold",Composition.filterfreq))
-        self.comppairfile=config.get("comppairfile",Composition.comppairfile)
-        self.filterfile=config.get("filterfile",Composition.filterfile)
+        self.smooth_ppmi=(self.weighting=="smooth_ppmi" or self.weighting=="smoothed_ppmi")
+        self.normalised=(config.get('default','normalised')=="True") or self.options[0]=="normalise"
+        self.ppmithreshold=float(config.get('default','wthreshold'))
+        self.saliency=int(config.get('default','saliency'))
+        self.saliencyperpath=config.get('default','saliencyperpath')
+        self.filterfreq=int(config.get('default','fthreshold'))
+        self.comppairfile=config.get('default','comppairfile')
+        self.filterfile=config.get('default','filterfile')
 
         return
     #----HELPER FUNCTIONS
@@ -742,6 +740,9 @@ class Composition:
             print "Computing gof_ppmi"
             for type in typetots.keys():
                 grandtot+=float(typetots[type])
+            if self.smooth_ppmi:
+                grandtot=math.pow(grandtot,0.75)
+
                 #print type, grandtot
         else:
             print "Computing ppmi"
@@ -759,6 +760,10 @@ class Composition:
                 feattot=float(feattots[feature]) #C<*,p,w2>
                 typetot=float(typetots[self.getpathtype(feature)]) #C<*,p,*>
                 entrytotal=float(entrytots[entry]) # C<w1,*,*>
+
+                if self.smooth_ppmi:
+                    feattot=math.pow(feattot,0.75)
+                    typetot=math.pow(typetot,0.75)
 
                 if self.gof_ppmi:
 
@@ -797,6 +802,8 @@ class Composition:
             suffix += ".pnppmi"
         elif self.gof_ppmi:
             suffix += ".gof_ppmi"
+        elif self.smooth_ppmi:
+            suffix += ".smooth_ppmi"
         else:
             suffix += ".ppmi"
         if self.ppmithreshold>0:
