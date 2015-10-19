@@ -237,8 +237,9 @@ class PythonParser:
             self.run_stanford_pipeline()
 
         #should be able to use the conll flag in stanford and then clean up the output to something more like that expected by Robertson parser or APT software
-        #if self.outputformat.startswith('conll'):
-        #    self.process_corpora_from_xml()
+        #but older version of the parser does not recognise conll flag
+        if self.outputformat.startswith('conll'):
+            self.process_corpora_from_xml()
 
     def run(self):
         self.runPipeline()
