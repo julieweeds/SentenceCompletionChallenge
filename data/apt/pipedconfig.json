@@ -1,6 +1,6 @@
 [default]
 options=["split","reduceorder","maketotals","filter","normalise","maketotals","revectorise"]
-filename:nyt_rbt_unigram_2.tsv
+filename=nyt_rbt_unigram_2.tsv
 pos=N
 weighting=smooth_ppmi
 minorder=1
