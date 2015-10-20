@@ -522,8 +522,10 @@ class Composition:
         outfile=infile+".filtered"
 
         coltotals= self.load_coltotals()
+        savereducedstring=self.reducedstring
         self.reducedstring=".reduce_1_1" #always use same rowtotals for filtering whatever the reduction
         rowtotals = self.load_rowtotals()
+        self.reducedstring=savereducedstring
         outstream=open(outfile,"w")
         print "Filtering for words ",self.words
         print "Filtering for frequency ",self.filterfreq
