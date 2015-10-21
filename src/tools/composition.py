@@ -46,6 +46,9 @@ class Composition:
     saliency=0
     saliencyperpath=False
 
+    headPoS={"nn":"N","amod":"N"}
+    depPoS={"nn":"N","amod":"J"}
+
     def __init__(self,options):
 
         if options[0] == "config":
@@ -1000,59 +1003,85 @@ class Composition:
     #add these to the dicts for ANs
     #----
     def ANcompose(self,adj,noun):
-        nounvector=self.nounvecs[noun]
-        adjvector=self.adjvecs[adj]
-        ANvector=self.addAN(adjvector,nounvector)
-        ANpathvector=self.addAN(self.adjpathtots[adj],self.nounpathtots[noun])
-        ANtot=float(self.nountots[noun])+float(self.adjtots[adj])
-        entry=noun+":mod:"+adj
-        self.ANvecs[entry]=ANvector
-        self.ANpathtots[entry]=ANpathvector
-        self.ANtots[entry]=ANtot
+        self.CompoundCompose(adj,noun,"mod")
+
+    def CompoundCompose(self,dep,head,rel):
+        hdpos=Composition.headPoS.get(rel,"N")
+        dppos=Composition.depPoS.get(rel,"J")
+
+        if hdpos=="N":
+            headvector=self.nounvecs[head]
+            headpathtots=self.nounpathtots[head]
+            headtot=self.nountots[head]
+        else:
+            headvector=self.adjvecs[head]
+            headpathtots=self.adjpathtots[head]
+            headtot=self.adjtots[head]
+
+        if dppos=="N":
+            depvector=self.nounvecs[dep]
+            deppathtots=self.nounpathtots[dep]
+            deptot=self.nountots[dep]
+        else:
+            depvector=self.adjvecs[dep]
+            deppathtots=self.adjpathtots[dep]
+            deptot=self.adjtots[dep]
+
+        entry=dep+"|"+rel+"|"+head
+        self.ANvecs[entry]=self.addCompound(depvector,headvector,rel)
+        self.ANpathtots[entry]=self.addCompound(deppathtots,headpathtots,rel)
+        self.ANtots[entry]=float(deptot)+float(headtot)
+
 
     #----
     #add an adjective vector to a noun vector (may be feature vectors or path vectors)
     #do this by offsetting the adjective vector so that it is aligned with the noun vector
     #then add noun vector to adjective vector
     #----
-    def addAN(self,adjvector,nounvector):
+    def addCompound(self,depvector,headvector,rel):
 
-        offsetvector = self.offsetAN(adjvector)
+        offsetvector = self.offsetVector(depvector,rel)
 
-        ANvector={}
+        COMPOUNDvector={}
         #print "Processing noun features "+str(len(nounvector.keys()))
         count=0
         intersect=[]
         #print nounvector
         #print adjvector
-        for feature in nounvector.keys():
+        for feature in headvector.keys():
             count+=1
             if feature in offsetvector:
-                ANvector[feature]=float(nounvector[feature])+float(offsetvector[feature])
+                COMPOUNDvector[feature]=float(headvector[feature])+float(offsetvector[feature])
                 intersect.append(feature)
                 offsetvector.__delitem__(feature)
             else:
-                ANvector[feature]=nounvector[feature]
+                COMPOUNDvector[feature]=headvector[feature]
             if count%10000==0:print"Processed "+str(count)
 
         print "Intersecting features: "+str(len(intersect))
         #print "Processing remaining adj features "+str(len(adjvector.keys()))+" : reduced to : "+str(len(offsetvector.keys()))
-        ANvector.update(offsetvector)
+        COMPOUNDvector.update(offsetvector)
         #print "Complete"
-        return ANvector
+        return COMPOUNDvector
+
+    def addAN(self,adjvector,nounvector):
+        return self.addCompound(adjvector,nounvector,"mod")
 
     #----
     #offset an adjective vector so that it aligns with the noun vector it is modifying
     #----
     def offsetAN(self,adjvector):
-        adjPREFIX="_mod"
-        nounPREFIX="mod"
+        return self.offsetVector(adjvector,"mod")
+
+    def offsetVector(self,depvector,rel):
+        depPREFIX="_"+rel
+        headPREFIX=rel
 
         offsetvector={}
         incomp=0
-        for feature in adjvector.keys():
+        for feature in depvector.keys():
             (prefix,suffix)= self.splitfeature(feature)
-            if prefix==adjPREFIX:
+            if prefix==depPREFIX:
                 newfeature=suffix+self.getpathvalue(feature)
             elif prefix.startswith("_"):
                 #incompatible feature for composition
@@ -1060,11 +1089,11 @@ class Composition:
                 incomp+=1
                 newfeature=""
             elif feature.startswith(":"):
-                newfeature=nounPREFIX+feature
+                newfeature=headPREFIX+feature
             else:
-                newfeature=nounPREFIX+"\xc2\xbb"+feature
+                newfeature=headPREFIX+"\xc2\xbb"+feature
             if not newfeature == "":
-                offsetvector[newfeature]=adjvector[feature]
+                offsetvector[newfeature]=depvector[feature]
         #print "Features in original adj vector: "+str(len(adjvector.keys()))
         #print "Incompatible features in adjective vector: "+str(incomp)
         #print "Features in offset adj vector: "+str(len(offsetvector.keys()))
