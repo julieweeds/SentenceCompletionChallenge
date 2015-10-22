@@ -14,18 +14,17 @@ __author__ = 'juliewe'
 
 import sys,math,gzip,ast
 import ConfigParser
-#import json
 
 from operator import itemgetter
 
 try:
     import graphing
-except ImportError:
+except IOError,ImportError:
     print "Warning: Unable to import graphing module"
 
 try:
     import yaml
-except ImportError:
+except ImportError,IOError:
     print "Warning: Unable to import yaml for reading composition pair file"
 
 
@@ -106,11 +105,15 @@ class Composition:
         self.vecsbypos={}
         self.totsbypos={}
         self.feattotsbypos={}
+        self.pathtotsbypos={}
+        self.typetotsbypos={}
 
         for pos in self.filesbypos.keys():
             self.vecsbypos[pos]={}
             self.totsbypos[pos]={}
             self.feattotsbypos[pos]={}
+            self.pathtotsbypos[pos]={}
+            self.typetotsbypos[pos]={}
 
 
 
@@ -910,11 +913,7 @@ class Composition:
                 suffix+=".sal_"+str(self.saliency)
         outfile=self.selectpos()+self.reducedstring+".composed"+suffix
 
-        self.feattotsbypos={}
-        self.totsbypos={}
-        self.vecsbypos={}
-        self.pathtotsbypos={}
-        self.typetotsbypos={}
+
 
         for pos in ["N","J"]:
             self.pos=pos

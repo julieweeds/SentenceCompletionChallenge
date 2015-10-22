@@ -2,8 +2,7 @@ __author__ = 'juliewe'
 #support composition of compounds and comparison with observed vectors
 
 from composition import Composition
-import ConfigParser,sys
-from compounds import Compounder
+import sys
 
 class Compound:
     leftRels={"J":["amod","mod"],"N":["nn"]}
@@ -35,12 +34,12 @@ class Compound:
         return self.text.split('|')[2].split('/')[1]
 
     def getWordsByPos(self,pos):
-        #TODO: don't usually need lower case for pos
+        #check not lower case for pos
         words=[]
         if self.getRel() in Compound.leftRels.get(pos,[]):
-            words.append(self.getLeftLex()+"/"+pos.lower())
+            words.append(self.getLeftLex()+"/"+pos)
         if self.getRel() in Compound.rightRels.get(pos,[]):
-            words.append(self.getRightLex()+"/"+pos.lower())
+            words.append(self.getRightLex()+"/"+pos)
         return words
 
     def toString(self):
@@ -114,14 +113,15 @@ class NounCompounder(Composition):
             self.ANpathtots={}
 
             for compound in self.myCompounder.relindex[rel]:
-                #TODO: don't usually need lower case for pos
-                self.CompoundCompose(compound.getLeftLex()+"/"+NounCompounder.left[rel].lower(),compound.getRightLex()+"/"+NounCompounder.right[rel].lower(),rel)
+                #should check not lower case for pos
+                self.CompoundCompose(compound.getLeftLex()+"/"+NounCompounder.left[rel],compound.getRightLex()+"/"+NounCompounder.right[rel],rel)
 
 
             myvectors.update(self.mostsalientvecs(self.ANvecs,self.ANpathtots,self.ANfeattots,self.ANtypetots,self.ANtots))
         return myvectors
 
     def run(self):
+        self.option=self.options[0]
         self.myCompounder=DepCompounder(self.config)
         self.myCompounder.run()
         self.compose()
