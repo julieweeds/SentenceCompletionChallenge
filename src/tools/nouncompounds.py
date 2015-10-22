@@ -4,6 +4,14 @@ __author__ = 'juliewe'
 from composition import Composition
 import sys
 
+def union(list1,list2):
+
+    for value in list2:
+        if value not in list1:
+            list1.append(value)
+
+    return list1
+
 class Compound:
     leftRels={"J":["amod","mod"],"N":["nn"]}
     rightRels={"N":["amod","nn","mod"],"J":[]}
@@ -72,7 +80,7 @@ class DepCompounder:
                 self.relindex=self.addtoindex(acompound.getRel(),self.relindex,acompound)
 
                 for pos in self.wordsByPos.keys():
-                    self.wordsByPos[pos]=self.wordsByPos[pos]+acompound.getWordsByPos(pos)
+                    self.wordsByPos[pos]=union(self.wordsByPos[pos],acompound.getWordsByPos(pos))
 
 
     def addtoindex(self,key,index,acompound):
@@ -100,6 +108,7 @@ class NounCompounder(Composition):
 
     def set_words(self):
         self.words=self.myCompounder.wordsByPos[self.pos]
+        if self.words==[]:self.words=['-']
 
 
     def runANcomposition(self):
@@ -114,8 +123,10 @@ class NounCompounder(Composition):
 
             for compound in self.myCompounder.relindex[rel]:
                 #should check not lower case for pos
-                self.CompoundCompose(compound.getLeftLex()+"/"+NounCompounder.left[rel],compound.getRightLex()+"/"+NounCompounder.right[rel],rel)
-
+                try:
+                    self.CompoundCompose(compound.getLeftLex()+"/"+NounCompounder.left[rel],compound.getRightLex()+"/"+NounCompounder.right[rel],rel)
+                except KeyError:
+                    print "Error: 1 or more vectors not present for "+compound.text
 
             myvectors.update(self.mostsalientvecs(self.ANvecs,self.ANpathtots,self.ANfeattots,self.ANtypetots,self.ANtots))
         return myvectors

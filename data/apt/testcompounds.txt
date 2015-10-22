@@ -1,3 +1,1 @@
-gold|nn|mine/N
-gold|amod|mine/N
 radio|nn|station/N

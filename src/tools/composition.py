@@ -609,7 +609,7 @@ class Composition:
                 line=line.rstrip()
                 fields=line.split("\t")
                 entry=fields[0]
-                print entry
+                #print entry
                 if self.include(entry):
                     vector={}
                     features=fields[1:]
