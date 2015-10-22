@@ -46,8 +46,9 @@ class Composition:
     saliency=0
     saliencyperpath=False
 
-    headPoS={"nn":"N","amod":"N"}
-    depPoS={"nn":"N","amod":"J"}
+    headPoS={"nn":"N","amod":"N","mod":"N"}
+    depPoS={"nn":"N","amod":"J","mod":"J"}
+
 
     def __init__(self,options):
 
@@ -99,46 +100,35 @@ class Composition:
             self.saliencyperpath=Composition.saliencyperpath
 
           #suffixes for pos
-        self.nounfile=self.inpath+".nouns"
-        self.verbfile=self.inpath+".verbs"
-        self.adjfile=self.inpath+".adjs"
-        self.advfile=self.inpath+".advs"
-        self.otherfile=self.inpath+".others"
+        self.filesbypos={"N":self.inpath+".nouns","V":self.inpath+".verbs","J":self.inpath+".adjs","R":self.inpath+".advs","F":self.inpath+".others","ANS":self.inpath+".ans"}
+
         #these are dictionaries which will hold vectors and totals
-        self.nounvecs={}
-        self.adjvecs={}
-        self.nountots={}
-        self.nounfeattots={}
-        self.adjtots={}
-        self.adjfeattots={}
+        self.vecsbypos={}
+        self.totsbypos={}
+        self.feattotsbypos={}
 
-        #if present load phrases for composition
-        # and set words/paths of interest
+        for pos in self.filesbypos.keys():
+            self.vecsbypos[pos]={}
+            self.totsbypos[pos]={}
+            self.feattotsbypos[pos]={}
 
-        if self.comppairfile!="":
-            with open(self.comppairfile) as fp:
-                self.comppairlist = yaml.safe_load(fp)
-        else:
-            self.comppairlist=[]
-        self.set_words()
+
+
         self.includedtypes=Composition.includedtypes
 
 
     def configure(self,filename):
         #load and configure
         print "Reading configuration from "+filename
-        #with open(filename) as fp:
-            #config=json.load(fp,encoding="ascii")
-        #    config=yaml.safe_load(fp)
-        config=ConfigParser.RawConfigParser()
-        config.read(filename)
+        self.config=ConfigParser.RawConfigParser()
+        self.config.read(filename)
 
-        self.options=ast.literal_eval(config.get('default','options'))
+        self.options=ast.literal_eval(self.config.get('default','options'))
 
-        self.inpath=config.get('default','filename')
-        self.pos=config.get('default','pos')
-        mini = config.get('default','minorder')
-        maxi = config.get('default','maxorder')
+        self.inpath=self.config.get('default','filename')
+        self.pos=self.config.get('default','pos')
+        mini = self.config.get('default','minorder')
+        maxi = self.config.get('default','maxorder')
         if mini == "X":
             self.minorder=0
             self.maxorder=2
@@ -148,17 +138,17 @@ class Composition:
             self.maxorder=int(maxi)
             self.reducedstring=".reduce_"+str(mini)+"_"+str(maxi)
 
-        self.weighting=config.get('default','weighting')
+        self.weighting=self.config.get('default','weighting')
         self.pp_normal=(self.weighting=="pnppmi" or self.weighting=="pp_normalise")
         self.gof_ppmi=(self.weighting=="gof_ppmi")
         self.smooth_ppmi=(self.weighting=="smooth_ppmi" or self.weighting=="smoothed_ppmi")
-        self.normalised=(config.get('default','normalised')=="True") or self.options[0]=="normalise"
-        self.ppmithreshold=float(config.get('default','wthreshold'))
-        self.saliency=int(config.get('default','saliency'))
-        self.saliencyperpath=config.get('default','saliencyperpath')
-        self.filterfreq=int(config.get('default','fthreshold'))
-        self.comppairfile=config.get('default','comppairfile')
-        self.filterfile=config.get('default','filterfile')
+        self.normalised=(self.config.get('default','normalised')=="True") or self.options[0]=="normalise"
+        self.ppmithreshold=float(self.config.get('default','wthreshold'))
+        self.saliency=int(self.config.get('default','saliency'))
+        self.saliencyperpath=self.config.get('default','saliencyperpath')
+        self.filterfreq=int(self.config.get('default','fthreshold'))
+        self.comppairfile=self.config.get('default','comppairfile')
+        self.filterfile=self.config.get('default','filterfile')
 
         return
     #----HELPER FUNCTIONS
@@ -226,20 +216,8 @@ class Composition:
     #generate the input file string according to POS
     #---
     def selectpos(self):
-        if self.pos=="N":
-            infile=self.nounfile
-        elif self.pos=="V":
-            infile=self.verbfile
-        elif self.pos=="J":
-            infile=self.adjfile
-        elif self.pos=="R":
-            infile=self.advfile
-        elif self.pos=="AN":
-            infile=self.inpath+".ans"
-        else:
-            infile=self.nounfile
+        return self.filesbypos.get(self.pos,self.filesbypos["N"])
 
-        return infile
 
     #----
     #get the path prefix / dependency path of a given feature
@@ -326,11 +304,11 @@ class Composition:
     #----
     def splitpos(self):
 
-        nouns=open(self.nounfile,"w")
-        verbs=open(self.verbfile,"w")
-        adjs=open(self.adjfile,"w")
-        advs=open(self.advfile,"w")
-        others=open(self.otherfile,"w")
+        nouns=open(self.filesbypos["N"],"w")
+        verbs=open(self.filesbypos["V"],"w")
+        adjs=open(self.filesbypos["J"],"w")
+        advs=open(self.filesbypos["R"],"w")
+        others=open(self.filesbypos["F"],"w")
 
 
         infile=self.inpath+".gz"
@@ -618,6 +596,7 @@ class Composition:
                 infile+=".norm"
         vecs={}
         print "Loading vectors from: "+infile
+        print "Words of interest: ",self.words
         with open(infile) as instream:
             lines=0
             for line in instream:
@@ -627,7 +606,7 @@ class Composition:
                 line=line.rstrip()
                 fields=line.split("\t")
                 entry=fields[0]
-                #print entry, self.words
+                print entry
                 if self.include(entry):
                     vector={}
                     features=fields[1:]
@@ -819,13 +798,13 @@ class Composition:
             else:
                 suffix+=".sal_"+str(self.saliency)
         outfile=self.selectpos()+self.reducedstring+".filtered"+suffix
-        self.nounvecs=self.load_vectors()
-        self.nounfeattots=self.load_coltotals()
-        self.nountots=self.load_rowtotals()
-        self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
-        self.nountypetots=self.compute_typetotals(self.nounfeattots)
+        self.vecsbypos[self.pos]=self.load_vectors()
+        self.feattotsbypos[self.pos]=self.load_coltotals()
+        self.totsbypos[self.pos]=self.load_rowtotals()
+        self.pathtotsbypos[self.pos]=self.compute_nounpathtotals(self.vecsbypos[self.pos])
+        self.typetotsbypos[self.pos]=self.compute_typetotals(self.feattotsbypos[self.pos])
 
-        ppmivecs=self.computeppmi(self.nounvecs,self.nounpathtots,self.nounfeattots,self.nountypetots,self.nountots)
+        ppmivecs=self.computeppmi(self.vecsbypos[self.pos],self.pathtotsbypos[self.pos],self.feattotsbypos[self.pos],self.typetotsbypos[self.pos],self.totsbypos[self.pos])
         self.output(ppmivecs,outfile)
 
 
@@ -833,20 +812,7 @@ class Composition:
     #use POS to determine which vectors/totals to supply to self.mostsalientvecs
     #----
     def mostsalient(self):
-        if self.pos=="N":
-            vecs=self.nounvecs
-            tots=self.nounpathtots
-            feattots=self.nounfeattots
-            typetots=self.nountypetots
-            entrytots=self.nountots
-        elif self.pos=="J":
-            vecs=self.adjvecs
-            tots=self.adjpathtots
-            feattots=self.adjfeattots
-            typetots=self.nountypetots
-            entrytots=self.adjtots
-
-        return self.mostsalientvecs(vecs,tots,feattots,typetots,entrytots)
+        return self.mostsalientvecs(self.vecsbypos[self.pos],self.pathtotsbypos[self.pos],self.feattotsbypos[self.pos],self.typetotsbypos[self.pos],self.totsbypos[self.pos])
 
     #---
     #compute PPMI and then only retain the most salient features (up to featmax for each includedtype)
@@ -904,16 +870,16 @@ class Composition:
     def inspect(self):
         self.pos="N"
         self.set_words()
-        self.nounfeattots=self.load_coltotals()
-        self.nountots=self.load_rowtotals()
-        self.nounvecs= self.load_vectors()
-        self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
-        self.nountypetots=self.compute_typetotals(self.nounfeattots)
-        print self.nountypetots
-        graphing.display_bargraph(self.nountypetots,title="Path Distribution over all Nouns")
-        for entry in self.nounvecs.keys():
+        self.feattotsbypos[self.pos]=self.load_coltotals()
+        self.totsbypos[self.pos]=self.load_rowtotals()
+        self.vecsbypos[self.pos]= self.load_vectors()
+        self.pathtotsbypos[self.pos]=self.compute_nounpathtotals(self.vecsbypos[self.pos])
+        self.typetotsbypos[self.pos]=self.compute_typetotals(self.feattotsbypos[self.pos])
+        print self.typetotsbypos[self.pos]
+        graphing.display_bargraph(self.typetotsbypos[self.pos],title="Path Distribution over all Nouns")
+        for entry in self.vecsbypos[self.pos].keys():
             title="Path Distribution for "+entry
-            graphing.display_bargraph(self.nounpathtots[entry],title)
+            graphing.display_bargraph(self.pathtotsbypos[self.pos][entry],title)
 
         self.mostsalient()
 
@@ -943,25 +909,23 @@ class Composition:
             else:
                 suffix+=".sal_"+str(self.saliency)
         outfile=self.selectpos()+self.reducedstring+".composed"+suffix
-        self.pos="N"
-        self.set_words()
-        self.nounfeattots=self.load_coltotals()
-        self.nountots=self.load_rowtotals()
-        self.nounvecs= self.load_vectors()
-        self.nounpathtots=self.compute_nounpathtotals(self.nounvecs)
-        self.nountypetots=self.compute_typetotals(self.nounfeattots)
 
-        self.mostsalient()
+        self.feattotsbypos={}
+        self.totsbypos={}
+        self.vecsbypos={}
+        self.pathtotsbypos={}
+        self.typetotsbypos={}
 
-        self.pos="J"
-        self.set_words()
-        self.adjfeattots=self.load_coltotals()
-        self.adjtots=self.load_rowtotals()
-        self.adjvecs= self.load_vectors()
-        self.adjpathtots=self.compute_nounpathtotals(self.adjvecs)
-        self.adjtypetots=self.compute_typetotals(self.adjfeattots)
+        for pos in ["N","J"]:
+            self.pos=pos
+            self.set_words()
+            self.feattotsbypos[pos]=self.load_coltotals()
+            self.totsbypos[pos]=self.load_rowtotals()
+            self.vecsbypos[pos]= self.load_vectors()
+            self.pathtotsbypos[pos]=self.compute_nounpathtotals(self.vecsbypos[pos])
+            self.typetotsbypos[pos]=self.compute_typetotals(self.feattotsbypos[pos])
 
-        self.mostsalient()
+            self.mostsalient()
 
         self.output(self.runANcomposition(),outfile)
 
@@ -973,8 +937,8 @@ class Composition:
     #----
     def runANcomposition(self):
 
-        self.ANfeattots=self.addAN(self.adjfeattots,self.nounfeattots)  #C<*,t,f>
-        self.ANtypetots=self.addAN(self.adjtypetots,self.nountypetots)  #C<*,t,*>
+        self.ANfeattots=self.addAN(self.feattotsbypos["J"],self.feattotsbypos["N"])  #C<*,t,f>
+        self.ANtypetots=self.addAN(self.typetotsbypos["J"],self.typetotsbypos["N"])  #C<*,t,*>
        #print ANtypetots
 
         self.ANvecs={}
@@ -1009,25 +973,16 @@ class Composition:
         hdpos=Composition.headPoS.get(rel,"N")
         dppos=Composition.depPoS.get(rel,"J")
 
-        if hdpos=="N":
-            headvector=self.nounvecs[head]
-            headpathtots=self.nounpathtots[head]
-            headtot=self.nountots[head]
-        else:
-            headvector=self.adjvecs[head]
-            headpathtots=self.adjpathtots[head]
-            headtot=self.adjtots[head]
 
-        if dppos=="N":
-            depvector=self.nounvecs[dep]
-            deppathtots=self.nounpathtots[dep]
-            deptot=self.nountots[dep]
-        else:
-            depvector=self.adjvecs[dep]
-            deppathtots=self.adjpathtots[dep]
-            deptot=self.adjtots[dep]
+        headvector=self.vecsbypos[hdpos][head]
+        headpathtots=self.pathtotsbypos[hdpos][head]
+        headtot=self.totsbypos[hdpos][head]
 
-        entry=dep+"|"+rel+"|"+head
+        depvector=self.vecsbypos[dppos][dep]
+        deppathtots=self.pathtotsbypos[dppos][dep]
+        deptot=self.totsbypos[dppos][dep]
+
+        entry=dep.split("/")[0]+"|"+rel+"|"+head
         self.ANvecs[entry]=self.addCompound(depvector,headvector,rel)
         self.ANpathtots[entry]=self.addCompound(deppathtots,headpathtots,rel)
         self.ANtots[entry]=float(deptot)+float(headtot)
@@ -1155,6 +1110,16 @@ class Composition:
 
     #----main run function
     def run(self):
+
+         #if present load phrases for composition
+        # and set words/paths of interest
+
+        if self.comppairfile!="":
+            with open(self.comppairfile) as fp:
+                self.comppairlist = yaml.safe_load(fp)
+        else:
+            self.comppairlist=[]
+        self.set_words()
 
         while len(self.options)>0:
             self.option=self.options[0]
