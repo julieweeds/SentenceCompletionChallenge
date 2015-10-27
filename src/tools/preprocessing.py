@@ -13,7 +13,7 @@ def configure(arguments):
     parameters['maxlength']=500
     parameters['lowercasing']=True
     if len(arguments)<3:
-        print "Requires two arguments: option and filename"
+        print("Requires two arguments: option and filename")
         exit()
     else:
         parameters["option"]=arguments[1]
@@ -117,8 +117,8 @@ class Converter:
     def convert(self, inname,outname):
 
 
-        print "Converting "+inname+" and writing to "+outname
-        print "Lowercasing: ",self.lowercasing
+        print("Converting "+inname+" and writing to "+outname)
+        print("Lowercasing: ",self.lowercasing)
         data=self.init_data()
         data['writetooutput']=True
 
@@ -128,28 +128,28 @@ class Converter:
                 for line in instream:
                     data['lines']+=1
                     self.processline(line.rstrip(),outstream,data)
-                    if data['lines']%1000000==0:print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
+                    if data['lines']%1000000==0:print("Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences")
 
-        print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
-        print "Longest sentence by index: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxindex_sentpos'])+", line "+str(data['maxindex_linepos'])
-        print "Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos'])
+        print("Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences")
+        print("Longest sentence by index: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxindex_sentpos'])+", line "+str(data['maxindex_linepos']))
+        print("Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos']))
 
 
     def analyse(self):
         inname=self.parameters["filename"]
 
-        print "Analysing "+inname+" with linelength "+str(self.linelength)
+        print("Analysing "+inname+" with linelength "+str(self.linelength))
         with gzip.open(inname,'rb') as instream:
 
             data = self.init_data()
             for line in instream:
                 data['lines']+=1
-                if data['lines']%1000000==0:print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
+                if data['lines']%1000000==0:print("Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences")
                 data=self.processline(line,'',data)
 
-        print "Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences"
-        print "Longest sentence by index: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxindex_sentpos'])+", line "+str(data['maxindex_linepos'])
-        print "Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos'])
+        print("Processed "+str(data['lines'])+" lines with "+str(data['sentences'])+" sentences")
+        print("Longest sentence by index: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxindex_sentpos'])+", line "+str(data['maxindex_linepos']))
+        print("Longest sentence by lines: "+str(data['maxmaxindex'])+" tokens at sentence "+str(data['maxlines_sentpos'])+", line "+str(data['maxlines_linepos']))
 
 
     def split(self):
@@ -185,7 +185,7 @@ class Converter:
         elif self.parameters["option"]=="split":
             self.split()
         else:
-            print "Unknown option: "+self.parameters["option"]
+            print("Unknown option: "+self.parameters["option"])
             exit()
 
 if __name__=="__main__":
