@@ -902,6 +902,8 @@ class Composition:
             suffix += ".pnppmi"
         elif self.gof_ppmi:
             suffix += ".gof_ppmi"
+        elif self.smooth_ppmi:
+            suffix += ".smooth_ppmi"
         else:
             suffix += ".ppmi"
         if self.ppmithreshold>0:
@@ -982,7 +984,9 @@ class Composition:
         deptot=self.totsbypos[dppos][dep]
 
         entry=dep.split("/")[0]+"|"+rel+"|"+head
+        print "Composing vectors"
         self.ANvecs[entry]=self.addCompound(depvector,headvector,rel)
+        print "Composing path totals"
         self.ANpathtots[entry]=self.addCompound(deppathtots,headpathtots,rel)
         self.ANtots[entry]=float(deptot)+float(headtot)
 

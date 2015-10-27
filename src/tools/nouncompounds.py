@@ -114,8 +114,10 @@ class NounCompounder(Composition):
     def runANcomposition(self):
         myvectors={}
         for rel in self.myCompounder.relindex.keys():
-            self.ANfeattots=self.addAN(self.feattotsbypos[NounCompounder.left[rel]],self.feattotsbypos[NounCompounder.right[rel]])  #C<*,t,f>
-            self.ANtypetots=self.addAN(self.typetotsbypos[NounCompounder.left[rel]],self.typetotsbypos[NounCompounder.right[rel]])  #C<*,t,*>
+            print "Adding feature totals"
+            self.ANfeattots=self.addCompound(self.feattotsbypos[NounCompounder.left[rel]],self.feattotsbypos[NounCompounder.right[rel]],rel)  #C<*,t,f>
+            print "Adding type totals"
+            self.ANtypetots=self.addCompound(self.typetotsbypos[NounCompounder.left[rel]],self.typetotsbypos[NounCompounder.right[rel]],rel)  #C<*,t,*>
 
             self.ANvecs={}
             self.ANtots={}
