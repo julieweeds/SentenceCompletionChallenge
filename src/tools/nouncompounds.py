@@ -2,7 +2,7 @@ __author__ = 'juliewe'
 #support composition of compounds and comparison with observed vectors
 #NB: as of 27/10/15 maintained version of this code is in Compositionality project
 
-from composition import Composition
+from .composition import Composition
 import sys
 
 def union(list1,list2):
@@ -20,7 +20,7 @@ class Compound:
     def __init__(self,text):
         self.text=text
         if not self.verify():
-            print "Error: incorrect format for compound "+self.text
+            print("Error: incorrect format for compound "+self.text)
             exit(-1)
 
     def verify(self):
@@ -70,7 +70,7 @@ class DepCompounder:
         self.wordsByPos={"J":[],"N":[]}
 
     def readcompounds(self):
-        print "Reading "+self.compoundfile
+        print("Reading "+self.compoundfile)
         with open(self.compoundfile) as fp:
             for line in fp:
                 line=line.rstrip()
@@ -80,7 +80,7 @@ class DepCompounder:
                 self.rightindex=self.addtoindex(acompound.getRightLex(),self.rightindex,acompound)
                 self.relindex=self.addtoindex(acompound.getRel(),self.relindex,acompound)
 
-                for pos in self.wordsByPos.keys():
+                for pos in list(self.wordsByPos.keys()):
                     self.wordsByPos[pos]=union(self.wordsByPos[pos],acompound.getWordsByPos(pos))
 
 
@@ -96,10 +96,10 @@ class DepCompounder:
 
     def run(self):
         self.readcompounds()
-        print "Compounder stats... "
-        print "Left index: "+str(len(self.leftindex.keys()))
-        print "Right index: "+str(len(self.rightindex.keys()))
-        print "Rel index: "+str(len(self.relindex.keys()))
+        print("Compounder stats... ")
+        print("Left index: "+str(len(list(self.leftindex.keys()))))
+        print("Right index: "+str(len(list(self.rightindex.keys()))))
+        print("Rel index: "+str(len(list(self.relindex.keys()))))
 
 
 
@@ -114,10 +114,10 @@ class NounCompounder(Composition):
 
     def runANcomposition(self):
         myvectors={}
-        for rel in self.myCompounder.relindex.keys():
-            print "Adding feature totals"
+        for rel in list(self.myCompounder.relindex.keys()):
+            print("Adding feature totals")
             self.ANfeattots=self.addCompound(self.feattotsbypos[NounCompounder.left[rel]],self.feattotsbypos[NounCompounder.right[rel]],rel)  #C<*,t,f>
-            print "Adding type totals"
+            print("Adding type totals")
             self.ANtypetots=self.addCompound(self.typetotsbypos[NounCompounder.left[rel]],self.typetotsbypos[NounCompounder.right[rel]],rel)  #C<*,t,*>
 
             self.ANvecs={}
@@ -129,7 +129,7 @@ class NounCompounder(Composition):
                 try:
                     self.CompoundCompose(compound.getLeftLex()+"/"+NounCompounder.left[rel],compound.getRightLex()+"/"+NounCompounder.right[rel],rel)
                 except KeyError:
-                    print "Error: 1 or more vectors not present for "+compound.text
+                    print("Error: 1 or more vectors not present for "+compound.text)
 
             myvectors.update(self.mostsalientvecs(self.ANvecs,self.ANpathtots,self.ANfeattots,self.ANtypetots,self.ANtots))
         return myvectors

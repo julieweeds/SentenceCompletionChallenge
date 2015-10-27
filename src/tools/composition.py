@@ -14,19 +14,19 @@ __author__ = 'juliewe'
 
 
 import sys,math,gzip,ast
-import ConfigParser
+import configparser
 
 from operator import itemgetter
 
 try:
-    import graphing
-except IOError,ImportError:
-    print "Warning: Unable to import graphing module"
+    from . import graphing
+except IOError as ImportError:
+    print("Warning: Unable to import graphing module")
 
 try:
     import yaml
-except ImportError,IOError:
-    print "Warning: Unable to import yaml for reading composition pair file"
+except ImportError as IOError:
+    print("Warning: Unable to import yaml for reading composition pair file")
 
 
 class Composition:
@@ -63,7 +63,7 @@ class Composition:
             if len(options)>1:
                 self.inpath=options[1]
             else:
-                print "Requires the base filename as second input"
+                print("Requires the base filename as second input")
 
             #parameter2 = pos to be considered (necessary for all functions other than split).  If not given = N
             if len(options)>2:
@@ -109,7 +109,7 @@ class Composition:
         self.pathtotsbypos={}
         self.typetotsbypos={}
 
-        for pos in self.filesbypos.keys():
+        for pos in list(self.filesbypos.keys()):
             self.vecsbypos[pos]={}
             self.totsbypos[pos]={}
             self.feattotsbypos[pos]={}
@@ -123,8 +123,8 @@ class Composition:
 
     def configure(self,filename):
         #load and configure
-        print "Reading configuration from "+filename
-        self.config=ConfigParser.RawConfigParser()
+        print("Reading configuration from "+filename)
+        self.config=configparser.RawConfigParser()
         self.config.read(filename)
 
         self.options=ast.literal_eval(self.config.get('default','options'))
@@ -193,7 +193,7 @@ class Composition:
             self.words=[]
             for wordlist in self.wordlistlist:
                 self.words+=wordlist
-        print "Setting words of interest: ",self.words
+        print("Setting words of interest: ",self.words)
 
 
     #----
@@ -332,7 +332,7 @@ class Composition:
             try:
                 pos=entry.split("/")[-1].lower()
             except:
-                print "Cannot split "+entry+" on line "+str(lines)
+                print("Cannot split "+entry+" on line "+str(lines))
                 pos=""
 
             #pos=entry.split("/")[-1].lower()
@@ -346,7 +346,7 @@ class Composition:
                 advs.write(line+"\n")
             else:
                 others.write(line+"\n")
-            if lines % 1000==0:print "Processed "+str(lines)+" lines"
+            if lines % 1000==0:print("Processed "+str(lines)+" lines")
             lines+=1
 
         nouns.close()
@@ -375,7 +375,7 @@ class Composition:
                 lines=0
                 for line in instream:
                     line=line.rstrip()
-                    print "Processing line "+str(lines)
+                    print("Processing line "+str(lines))
                     lines+=1
                     fields=line.split("\t")
                     entry=fields[0]
@@ -390,7 +390,7 @@ class Composition:
                         if forder>=self.minorder and forder<=self.maxorder:
                             outline+="\t"+feat+"\t"+freq
                             nofeats+=1
-                    print entry, nofeats
+                    print(entry, nofeats)
                     if nofeats>0:
                         outstream.write(outline+"\n")
                         #print "written out"
@@ -419,7 +419,7 @@ class Composition:
             lines=0
             for line in instream:
 
-                if lines%1000==0:print "Processing line "+str(lines)
+                if lines%1000==0:print("Processing line "+str(lines))
                 lines+=1
                 rowtotal=0.0
                 line=line.rstrip()
@@ -441,14 +441,14 @@ class Composition:
                         current=featuretotals.get(feat,0.0)
                         featuretotals[feat]=current+freq
                     except ValueError:
-                        print "Error: "+str(index)+"\t"+feat+"\t"+str(freq)+"\n"
+                        print("Error: "+str(index)+"\t"+feat+"\t"+str(freq)+"\n")
                         features=features+list(feat)
 
 
 
                 rows.write(entry+"\t"+str(rowtotal)+"\n")
 
-        for feat in featuretotals.keys():
+        for feat in list(featuretotals.keys()):
             cols.write(feat+"\t"+str(featuretotals[feat])+"\n")
 
 
@@ -464,14 +464,14 @@ class Composition:
             infile+=".filtered.norm"
         rowtotals=infile+".rtot"
         totals={}
-        print "Loading entry totals from: "+rowtotals
+        print("Loading entry totals from: "+rowtotals)
         with open(rowtotals) as instream:
             for line in instream:
                 line=line.rstrip()
                 fields=line.split("\t")
                 if self.normalised or float(fields[1])>self.filterfreq:
                     totals[fields[0]]=float(fields[1])
-        print "Loaded "+str(len(totals.keys()))
+        print("Loaded "+str(len(list(totals.keys()))))
 
         return totals
 
@@ -484,14 +484,14 @@ class Composition:
             infile+=".filtered.norm"
         coltotals=infile+".ctot"
         totals={}
-        print "Loading feature totals from: "+coltotals
+        print("Loading feature totals from: "+coltotals)
         with open(coltotals) as instream:
             for line in instream:
                 line=line.rstrip()
                 fields=line.split("\t")
                 if self.normalised or float(fields[1])>self.filterfreq:
                     totals[fields[0]]=float(fields[1])
-        print "Loaded "+str(len(totals.keys()))
+        print("Loaded "+str(len(list(totals.keys()))))
         return totals
 
 
@@ -512,8 +512,8 @@ class Composition:
         rowtotals = self.load_rowtotals()
         self.reducedstring=savereducedstring
         outstream=open(outfile,"w")
-        print "Filtering for words ",self.words
-        print "Filtering for frequency ",self.filterfreq
+        print("Filtering for words ",self.words)
+        print("Filtering for frequency ",self.filterfreq)
         todo=len(rowtotals)
         with open(infile) as instream:
             lines=0
@@ -521,7 +521,7 @@ class Composition:
                 line = line.rstrip()
                 if lines%1000==0:
                     percent=lines*100.0/todo
-                    print "Processing line "+str(lines)+"("+str(percent)+"%)"
+                    print("Processing line "+str(lines)+"("+str(percent)+"%)")
                 lines+=1
                 fields=line.split("\t")
                 #entry=fields[0].lower()
@@ -546,7 +546,7 @@ class Composition:
                     if nofeats>0:
                         outstream.write(outline+"\n")
                 else:
-                    print "Ignoring "+entry+" with frequency "+str(entrytot)
+                    print("Ignoring "+entry+" with frequency "+str(entrytot))
 
         outstream.close()
 
@@ -561,11 +561,11 @@ class Composition:
         infile= self.selectpos()+self.reducedstring+".filtered"
         outfile=infile+".norm"
 
-        print "Normalising counts => sum to 1"
+        print("Normalising counts => sum to 1")
         outstream=open(outfile,"w")
 
-        todo=len(rowtotals.keys())
-        print "Estimated total vectors to do = "+str(todo)
+        todo=len(list(rowtotals.keys()))
+        print("Estimated total vectors to do = "+str(todo))
         with open(infile) as instream:
             lines=0
             for line in instream:
@@ -586,7 +586,7 @@ class Composition:
                 lines+=1
                 if lines%1000==0:
                     percent=lines*100.0/todo
-                    print "Completed "+str(lines)+" vectors ("+str(percent)+"%)"
+                    print("Completed "+str(lines)+" vectors ("+str(percent)+"%)")
         outstream.close()
         self.normalised=True
 
@@ -599,13 +599,13 @@ class Composition:
             if self.normalised and not self.option=="normalise":
                 infile+=".norm"
         vecs={}
-        print "Loading vectors from: "+infile
-        print "Words of interest: ",self.words
+        print("Loading vectors from: "+infile)
+        print("Words of interest: ",self.words)
         with open(infile) as instream:
             lines=0
             for line in instream:
                 lines+=1
-                if lines%1000==0: print "Reading line "+str(lines)
+                if lines%1000==0: print("Reading line "+str(lines))
 
                 line=line.rstrip()
                 fields=line.split("\t")
@@ -627,14 +627,14 @@ class Composition:
                             freq=float(freq)
                             vector[feat]=freq
                         except ValueError:
-                            print "Error: "+str(index)+"\t"+feat+"\t"+str(freq)+"\n"
+                            print("Error: "+str(index)+"\t"+feat+"\t"+str(freq)+"\n")
                             features=features+list(feat)
-                    if entry in vecs.keys():
+                    if entry in list(vecs.keys()):
                         vecs[entry]=self.add(vecs[entry],vector)
                     else:
                         vecs[entry]=vector
 
-        print "Loaded "+str(len(vecs.keys()))+" vectors"
+        print("Loaded "+str(len(list(vecs.keys())))+" vectors")
         return vecs
 
     #----
@@ -643,17 +643,17 @@ class Composition:
     #----
     def output(self,vectors,outfile):
         #write a set of vectors to file
-        print "Writing vectors to output file: "+outfile
+        print("Writing vectors to output file: "+outfile)
         with open(outfile,"w") as outstream:
-            for entry in vectors.keys():
+            for entry in list(vectors.keys()):
                 vector=vectors[entry]
-                print entry
+                print(entry)
                 #print vector
-                if len(vector.keys())>0:
+                if len(list(vector.keys()))>0:
                     outstring=entry
                     ignored=0
                     nofeats=0
-                    for feat in vector.keys():
+                    for feat in list(vector.keys()):
                         forder=self.getorder(feat)
 
                         if forder>=self.minorder and forder<=self.maxorder:
@@ -663,7 +663,7 @@ class Composition:
                                 nofeats+=1
                             except:
                                 ignored+=1
-                    print "Ignored "+str(ignored)+" features"
+                    print("Ignored "+str(ignored)+" features")
                     if nofeats>0:
                         outstream.write(outstring+"\n")
 
@@ -678,9 +678,9 @@ class Composition:
     #----
     def compute_typetotals(self,feattots):
         #compute totals for different paths over all entries (using column totals given in feattots)
-        print "Computing path totals C<*,t,*>"
+        print("Computing path totals C<*,t,*>")
         typetots={}
-        for feature in feattots.keys():
+        for feature in list(feattots.keys()):
             pathtype=self.getpathtype(feature)
             sofar=typetots.get(pathtype,0.0)
             typetots[pathtype]=sofar+float(feattots[feature])
@@ -694,12 +694,12 @@ class Composition:
     #----
     def compute_nounpathtotals(self,vectors):
         #compute totals for the different paths for each entry
-        print "Computing path totals for each entry C<w1,t,*>"
+        print("Computing path totals for each entry C<w1,t,*>")
         pathtotals={}
-        for entry in vectors.keys():
+        for entry in list(vectors.keys()):
             totalvector={}
             vector=vectors[entry]
-            for feature in vector.keys():
+            for feature in list(vector.keys()):
                 pathtype=self.getpathtype(feature)
                 sofar=totalvector.get(pathtype,0.0)
                 totalvector[pathtype]=sofar+float(vector[feature])
@@ -723,26 +723,26 @@ class Composition:
         ppmivecs={}
         grandtot=0.0
         if self.pp_normal:
-            print "Computing pnppmi"
+            print("Computing pnppmi")
         elif self.gof_ppmi:
-            print "Computing gof_ppmi"
-            for type in typetots.keys():
+            print("Computing gof_ppmi")
+            for type in list(typetots.keys()):
                 grandtot+=float(typetots[type])
             if self.smooth_ppmi:
                 grandtot=math.pow(grandtot,0.75)
 
                 #print type, grandtot
         else:
-            print "Computing ppmi"
+            print("Computing ppmi")
         done =0
-        todo=len(vecs.keys())
+        todo=len(list(vecs.keys()))
 
-        for entry in vecs.keys():
+        for entry in list(vecs.keys()):
 
             ppmivector={}
 
             vector=vecs[entry]
-            for feature in vector.keys():
+            for feature in list(vector.keys()):
                 freq=float(vector[feature])  # C<w1,p,w2>
                 total=float(pathtots[entry][self.getpathtype(feature)]) # C<w1,p,*>
                 feattot=float(feattots[feature]) #C<*,p,w2>
@@ -768,7 +768,7 @@ class Composition:
             done+=1
             if done%1000==0:
                 percent=done*100.0/todo
-                print "Completed "+str(done)+" vectors ("+str(percent)+"%)"
+                print("Completed "+str(done)+" vectors ("+str(percent)+"%)")
 
 
 
@@ -826,11 +826,11 @@ class Composition:
     def mostsalientvecs(self,vecs,pathtots,feattots,typetots,entrytots):
 
         ppmivecs=self.computeppmi(vecs,pathtots,feattots,typetots,entrytots)
-        for entry in ppmivecs.keys():
-            print "Most salient features for "+entry+" , width: "+str(len(vecs[entry].keys()))+", "+str(len(ppmivecs[entry].keys()))
+        for entry in list(ppmivecs.keys()):
+            print("Most salient features for "+entry+" , width: "+str(len(list(vecs[entry].keys())))+", "+str(len(list(ppmivecs[entry].keys()))))
             vector=ppmivecs[entry]
             #print vector
-            feats=sorted(vector.items(),key=itemgetter(1),reverse=True)
+            feats=sorted(list(vector.items()),key=itemgetter(1),reverse=True)
 
             donetypes={}
 
@@ -839,11 +839,11 @@ class Composition:
                 pathtype=self.getpathtype(feature)
                 done=donetypes.get(pathtype,0)
                 if done<Composition.featmax and self.typeinclude(pathtype):
-                    print feature+" : "+str(tuple[1])+" ("+str(vecs[entry][feature])+")"
+                    print(feature+" : "+str(tuple[1])+" ("+str(vecs[entry][feature])+")")
                 donetypes[pathtype]=done+1
 
-            print donetypes
-            print "-----"
+            print(donetypes)
+            print("-----")
         return ppmivecs
 
     #-----
@@ -853,7 +853,7 @@ class Composition:
 
         if self.saliency>0:
             newvector={}
-            feats=sorted(ppmivector.items(),key=itemgetter(1),reverse=True)
+            feats=sorted(list(ppmivector.items()),key=itemgetter(1),reverse=True)
             donetypes={}
             all=0
             for tuple in feats:
@@ -879,9 +879,9 @@ class Composition:
         self.vecsbypos[self.pos]= self.load_vectors()
         self.pathtotsbypos[self.pos]=self.compute_nounpathtotals(self.vecsbypos[self.pos])
         self.typetotsbypos[self.pos]=self.compute_typetotals(self.feattotsbypos[self.pos])
-        print self.typetotsbypos[self.pos]
+        print(self.typetotsbypos[self.pos])
         graphing.display_bargraph(self.typetotsbypos[self.pos],title="Path Distribution over all Nouns")
-        for entry in self.vecsbypos[self.pos].keys():
+        for entry in list(self.vecsbypos[self.pos].keys()):
             title="Path Distribution for "+entry
             graphing.display_bargraph(self.pathtotsbypos[self.pos][entry],title)
 
@@ -985,9 +985,9 @@ class Composition:
         deptot=self.totsbypos[dppos][dep]
 
         entry=dep.split("/")[0]+"|"+rel+"|"+head
-        print "Composing vectors"
+        print("Composing vectors")
         self.ANvecs[entry]=self.addCompound(depvector,headvector,rel)
-        print "Composing path totals"
+        print("Composing path totals")
         self.ANpathtots[entry]=self.addCompound(deppathtots,headpathtots,rel)
         self.ANtots[entry]=float(deptot)+float(headtot)
 
@@ -1007,7 +1007,7 @@ class Composition:
         intersect=[]
         #print nounvector
         #print adjvector
-        for feature in headvector.keys():
+        for feature in list(headvector.keys()):
             count+=1
             if feature in offsetvector:
                 COMPOUNDvector[feature]=float(headvector[feature])+float(offsetvector[feature])
@@ -1015,9 +1015,9 @@ class Composition:
                 offsetvector.__delitem__(feature)
             else:
                 COMPOUNDvector[feature]=headvector[feature]
-            if count%10000==0:print"Processed "+str(count)
+            if count%10000==0:print("Processed "+str(count))
 
-        print "Intersecting features: "+str(len(intersect))
+        print("Intersecting features: "+str(len(intersect)))
         #print "Processing remaining adj features "+str(len(adjvector.keys()))+" : reduced to : "+str(len(offsetvector.keys()))
         COMPOUNDvector.update(offsetvector)
         #print "Complete"
@@ -1038,7 +1038,7 @@ class Composition:
 
         offsetvector={}
         incomp=0
-        for feature in depvector.keys():
+        for feature in list(depvector.keys()):
             (prefix,suffix)= self.splitfeature(feature)
             if prefix==depPREFIX:
                 newfeature=suffix+self.getpathvalue(feature)
@@ -1064,7 +1064,7 @@ class Composition:
     #---
     def add(self,avector,bvector):
         rvector=dict(avector)
-        for feat in bvector.keys():
+        for feat in list(bvector.keys()):
             rvector[feat]=rvector.get(feat,0)+bvector[feat]
         return rvector
 
@@ -1093,14 +1093,14 @@ class Composition:
                 vector = self.intersecteach(vector,self.nounvecs[aword])
             intersected[name]=vector
             total=0
-            for value in vector.values():
+            for value in list(vector.values()):
                 total+=value
             self.nountots[name]=total
         return intersected
 
     def intersecteach(self,avector,bvector):
         newvector={}
-        for feat in avector.keys():
+        for feat in list(avector.keys()):
             value=min(avector[feat],bvector.get(feat,0))
             if value>0:
                 newvector[feat]=value
@@ -1129,7 +1129,7 @@ class Composition:
             self.option=self.options[0]
             self.options=self.options[1:]
 
-            print "Stage: "+self.option
+            print("Stage: "+self.option)
             if self.option=="split":
                 self.splitpos()
             elif self.option=="reduceorder":
@@ -1153,7 +1153,7 @@ class Composition:
 
 
             else:
-                print "Unknown option: "+self.option
+                print("Unknown option: "+self.option)
 
 
 
