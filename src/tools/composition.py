@@ -1,3 +1,4 @@
+from __future__ import print_function
 __author__ = 'juliewe'
 # contains a number of tools useful for working with APT vector files - started March 2015
 # split : by POS
@@ -10,15 +11,12 @@ __author__ = 'juliewe'
 
 # vectors are displayed via their most salient features
 
-#NB: as of 27/10/15, maintained version of this code is in Compositionality project
-
 import sys
 import math
 import ast
-import configparser
 from operator import itemgetter
 
-from src.tools import graphing
+import configparser
 
 try:
     import yaml
@@ -367,10 +365,8 @@ class Composition:
                         if forder >= self.minorder and forder <= self.maxorder:
                             outline += "\t" + feat + "\t" + freq
                             nofeats += 1
-                    print(entry, nofeats)
                     if nofeats > 0:
                         outstream.write(outline + "\n")
-                        # print "written out"
 
     # ----
     # MAKETOTALS
@@ -575,10 +571,9 @@ class Composition:
         print("Loading vectors from: " + infile)
         print("Words of interest: ", self.words)
         with open(infile) as instream:
-            lines = 0
-            for line in instream:
-                lines += 1
-                if lines % 1000 == 0: print("Reading line " + str(lines))
+            for line_num, line in enumerate(instream):
+                if line_num % 1000 == 0:
+                    print("Reading line " + str(line_num))
 
                 line = line.rstrip()
                 fields = line.split("\t")
@@ -814,7 +809,6 @@ class Composition:
                 donetypes[pathtype] = done + 1
 
             print(donetypes)
-            print("-----")
         return ppmivecs
 
     # -----
@@ -845,6 +839,8 @@ class Composition:
     # display the path distribution graph for a set of noun vectors and the most salient feature for those vectors
     # -----
     def inspect(self):
+        from src.tools import graphing
+
         self.pos = "N"
         self.set_words()
         self.feattotsbypos[self.pos] = self.load_coltotals()
