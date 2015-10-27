@@ -86,6 +86,12 @@ gold|amod|mine/N
 
 The output file is called something like `test_vectors_3.tsv.nouns.reduce_0_2.composed.norm.smooth_ppmi` in the same directory as the input file. This is again a `tsv` file.
 
+Notes on input files:
+ 
+ - relations in `compound_file` need to match those in the vectors file, e.g. `amod` vs `mod`
+ - class `Compound` imposes some constraints on what can be a compound, e.g. an `amod` relation can only hold between a noun and an adjective
+ - entries need to have a coarse-grained PoS tag (e.g. NNS, NN, NNP map to N)
+
 # License
 
 Copyright 2015 Julie Weeds
