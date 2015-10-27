@@ -602,7 +602,7 @@ class Composition:
                     else:
                         vecs[entry] = vector
 
-        print("Loaded " + str(len(list(vecs.keys()))) + " vectors")
+        print("Loaded %d vectors" % len(vecs))
         return vecs
 
     # ----
@@ -611,7 +611,7 @@ class Composition:
     # ----
     def output(self, vectors, outfile):
         # write a set of vectors to file
-        print("Writing vectors to output file: " + outfile)
+        print("Writing %d vectors to output file %s" % (len(vectors), outfile))
         with open(outfile, "w") as outstream:
             for entry in list(vectors.keys()):
                 vector = vectors[entry]
