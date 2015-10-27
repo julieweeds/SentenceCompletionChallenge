@@ -10,6 +10,7 @@ __author__ = 'juliewe'
 
 #vectors are displayed via their most salient features
 
+#NB: as of 27/10/15, maintained version of this code is in Compositionality project
 
 
 import sys,math,gzip,ast

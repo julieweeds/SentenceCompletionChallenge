@@ -1,5 +1,6 @@
 __author__ = 'juliewe'
 #support composition of compounds and comparison with observed vectors
+#NB: as of 27/10/15 maintained version of this code is in Compositionality project
 
 from composition import Composition
 import sys
