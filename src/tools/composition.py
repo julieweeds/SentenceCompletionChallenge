@@ -898,12 +898,12 @@ class Composition:
 
         self.output(self.runANcomposition(), outfile)
 
-    # ----
-    # run ANcompose for each adjective, noun pair of interest
-    # then run mostsalientvecs on ANvecs which cause PPMI to be computed, most salient features displayed and PPMI vectors returned for output
-    # ----
-    def runANcomposition(self):
 
+    def runANcomposition(self):
+        """
+        run ANcompose for each adjective, noun pair of interest
+        then run mostsalientvecs on ANvecs which cause PPMI to be computed, most salient features displayed and PPMI vectors returned for output
+        """
         self.ANfeattots = self.addAN(self.feattotsbypos["J"], self.feattotsbypos["N"])  # C<*,t,f>
         self.ANtypetots = self.addAN(self.typetotsbypos["J"], self.typetotsbypos["N"])  # C<*,t,*>
         # print ANtypetots
@@ -928,11 +928,11 @@ class Composition:
 
         return self.mostsalientvecs(self.ANvecs, self.ANpathtots, self.ANfeattots, self.ANtypetots, self.ANtots)
 
-    # ----
-    # for a given adjective and noun, compute the compsed vector using addAN and the appropriate composed totals
-    # add these to the dicts for ANs
-    # ----
     def ANcompose(self, adj, noun):
+        """
+        for a given adjective and noun, compute the compsed vector using addAN and the appropriate composed totals
+        add these to the dicts for ANs
+        """
         self.CompoundCompose(adj, noun, "mod")
 
     def CompoundCompose(self, dep, head, rel):

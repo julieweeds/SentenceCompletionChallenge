@@ -74,6 +74,7 @@ comppairfile=""
 
 [compounder]
 compound_file=testcompounds.txt
+format=miro
 ```
 
 The `compound_file` options needs to point to a list of phrases to compose. Currently only noun phrases (`nn` and `amod` dependency relations) are supported. The format needs to be like this:
@@ -81,8 +82,18 @@ The `compound_file` options needs to point to a list of phrases to compose. Curr
 ```
 gold|nn|mine/N
 gold|amod|mine/N
+hard|mod|box/N
 
 ```
+
+Another way to format the input is the format specified by [DiscoUtils](https://github.com/mbatchkarov/DiscoUtils):
+```
+gold/J_mine/N
+gold/N_mine/N
+hard/J_box/N
+```
+The dependency relation is not explicitly specified in this format, which is fine for now (only dealing with noun compounds). If you use this input format, you need to add `format=miro` to the `compounder` section of the conf file. If your input is in a different format, register your reformatting function in `process_compounds` in `nouncompounds.py`.
+
 
 The output file is called something like `test_vectors_3.tsv.nouns.reduce_0_2.composed.norm.smooth_ppmi` in the same directory as the input file. This is again a `tsv` file.
 

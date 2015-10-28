@@ -1,3 +1,7 @@
+import os
+
+from configparser import NoOptionError
+
 from src.tools.composition import Composition
 
 __author__ = 'juliewe'
@@ -12,6 +16,24 @@ def union(list1, list2):
             list1.append(value)
 
     return list1
+
+
+def _miro(compound):
+    """
+    Converts NP compounds like "hard/J_box/N" to "hard|mod|box/N"
+    """
+    tagged_words = compound.split('_')
+    words = [word.split('/')[0] for word in tagged_words]
+    pos_tags = [word.split('/')[-1] for word in tagged_words]
+    if pos_tags == ['J', 'N']:
+        # adj and a noun, they must be in an AMOD relation
+        return '%s|mod|%s/%s' % (words[0], words[1], pos_tags[1])
+
+    elif pos_tags == ['N', 'N']:
+        # adj and a noun, they must be in an AMOD relation
+        return '%s|nmod|%s/%s' % (words[0], words[1], pos_tags[1])
+    else:
+        raise ValueError('Unknown format for compound %s' % compound)
 
 
 class Compound:
@@ -52,7 +74,7 @@ class Compound:
         return words
 
     def toString(self):
-        return self.getRel() + ":" + self.getLeftLex() + "\t" + self.getRightLex() + "\t" + self.getPos()
+        return '%s:%s\t%s\t%s' % (self.getRel(), self.getLeftLex(), self.getRightLex(), self.getPos())
 
 
 class DepCompounder:
@@ -60,14 +82,37 @@ class DepCompounder:
 
         try:
             self.datadir = config.get('compounder', 'datadir')
-        except:
-            self.datadir = ""
+        except NoOptionError:
+            self.datadir = "."
 
-        self.compoundfile = self.datadir + config.get('compounder', 'compound_file')
+        self.compoundfile = os.path.join(self.datadir, config.get('compounder', 'compound_file'))
+        try:
+            self.compound_file_format = config.get('compounder', 'format')
+        except NoOptionError:
+            self.compound_file_format = ''
+
         self.leftindex = {}
         self.relindex = {}
         self.rightindex = {}
         self.wordsByPos = {"J": [], "N": []}
+
+    def process_compounds(self):
+        """
+        If the compounds passed in are in the wrong format, convert them to the format expected by this package
+        """
+        if not self.compound_file_format:
+            print('Compounds file already in the correct format')
+            return
+
+        formatters = {'miro': _miro}  # register other formatters here
+
+        print('Formatting compounds file...')
+        outfile_name = self.compoundfile + '.converted'
+        with open(self.compoundfile) as infile, open(outfile_name, 'w') as outfile:
+            for line in infile:
+                outfile.write(formatters[self.compound_file_format](line.strip()))
+                outfile.write('\n')
+        self.compoundfile = outfile_name
 
     def readcompounds(self):
         print("Reading " + self.compoundfile)
@@ -94,6 +139,7 @@ class DepCompounder:
         return index
 
     def run(self):
+        self.process_compounds()
         self.readcompounds()
         print("Compounder stats... ")
         print("Left index: " + str(len(list(self.leftindex.keys()))))
