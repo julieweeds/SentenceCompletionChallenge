@@ -1,7 +1,7 @@
 __author__ = 'juliewe'
 #stripHeader.py is intended to strip the copyright header from the training documents in the given directory and place the result in a clean directory
 
-import ConfigParser,sys,os,glob
+import configparser,sys,os,glob
 
 class Guillotine:
 
@@ -9,7 +9,7 @@ class Guillotine:
 
     def __init__(self,config):
         self.config=config
-        self.parameters=ConfigParser.RawConfigParser()
+        self.parameters=configparser.RawConfigParser()
         self.parameters.read(config[1])
         if len(self.config)>2:
             self.option=self.config[2]
@@ -20,15 +20,15 @@ class Guillotine:
 
     def checkfiles(self):
 
-        print self.indir
+        print(self.indir)
         #files = [f for f in os.listdir(indir) if os.path.isfile(os.path.join(indir,f))]
 
         files=glob.glob(self.indir+"/*.TXT")
-        print len(files),files
+        print(len(files),files)
 
-        print self.outdir
+        print(self.outdir)
         files=glob.glob(self.outdir+"/*")
-        print len(files),files
+        print(len(files),files)
 
     def ensure_outpath(self):
         self.outpath=os.path.join(self.outdir,self.parameters.get('default','input'))

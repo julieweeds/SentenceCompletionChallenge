@@ -1,5 +1,5 @@
-import ConfigParser,os,sys,subprocess
-from runStanford import PythonParser, current_time
+import configparser,os,sys,subprocess
+from .runStanford import PythonParser, current_time
 
 __author__ = 'juliewe'
 #run the Stanford pipeline upto tagging and NER, convert to CONLL and then use ADR's dependency parser
@@ -7,7 +7,7 @@ __author__ = 'juliewe'
 class ParsingPipeline(PythonParser):
 
     def __init__(self,configfile):
-        self.config=ConfigParser.RawConfigParser()
+        self.config=configparser.RawConfigParser()
         self.config.read(configfile)
         self.whereami=self.config.get('default','whereami')
         self.stanford_dir=self.config.get(self.whereami,'stanford_dir')
@@ -30,9 +30,9 @@ class ParsingPipeline(PythonParser):
         os.chdir(self.working_dir)
 
         robertson_command=["java","-mx16g","-jar",self.robertson_jar,self.output_dir]
-        print "<%s> Running Robertson parser with command: %s" %(current_time(),str(robertson_command))
+        print("<%s> Running Robertson parser with command: %s" %(current_time(),str(robertson_command)))
         subprocess.call(robertson_command)
-        print "<%s> Robertson parser complete for path: %s" %(current_time(),self.output_dir)
+        print("<%s> Robertson parser complete for path: %s" %(current_time(),self.output_dir))
 
     def run(self):
         if self.inputformat!="sfd_parsed" and self.inputformat!="tagged":

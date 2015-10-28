@@ -1,6 +1,6 @@
 __author__ = 'juliewe'
 
-import ConfigParser,sys,os,ast,subprocess,datetime
+import configparser,sys,os,ast,subprocess,datetime
 import xml.etree.cElementTree as ET
 
 
@@ -10,7 +10,7 @@ def current_time():
 class PythonParser:
 
     def __init__(self,configfile):
-        self.config=ConfigParser.RawConfigParser()
+        self.config=configparser.RawConfigParser()
         self.config.read(configfile)
         self.whereami=self.config.get('default','whereami')
         self.stanford_dir=self.config.get(self.whereami,'stanford_dir')
@@ -57,7 +57,7 @@ class PythonParser:
     #Process directory of text with Stanford pipeline
     #options to perform:- tokenize,ssplit,pos,lemma,ner,parse
     #initialised via config file passed in via command line
-        print "<%s> Starting Stanford pipeline. " % current_time()
+        print("<%s> Starting Stanford pipeline. " % current_time())
         try:
             os.mkdir(self.output_dir)
         except OSError:
@@ -94,10 +94,10 @@ class PythonParser:
                             '-outputFormat','xml',
                             '-outputExtension',ext]
 
-            print "Running: \n"+str(stanford_cmd)
+            print("Running: \n"+str(stanford_cmd))
             subprocess.call(stanford_cmd)
-            print "<%s> Stanford complete for path: %s" %(current_time(),output_sub_dir)
-        print "<%s> All stanford complete." % current_time()
+            print("<%s> Stanford complete for path: %s" %(current_time(),output_sub_dir))
+        print("<%s> All stanford complete." % current_time())
 
 ##################
 #
@@ -112,7 +112,7 @@ class PythonParser:
         ID    FORM    LEMMA    POS
         Jobs are run in parallel.
         """
-        print "<%s> Starting XML conversion..." % current_time()
+        print("<%s> Starting XML conversion..." % current_time())
         for data_sub_dir in os.listdir(self.output_dir):
             #if data_sub_dir =='saved':
             self._process_xml_to_conll(os.path.join(self.output_dir, data_sub_dir))
@@ -123,8 +123,8 @@ class PythonParser:
         Given a directory of XML documents from stanford's output,
         convert them to CoNLL style sentences. Jobs are not run in parallel.
         """
-        print "<%s> Beginning formatting to CoNLL: %s" % (
-        current_time(), data_sub_dir)
+        print("<%s> Beginning formatting to CoNLL: %s" % (
+        current_time(), data_sub_dir))
         # jobs = {}
 #        Parallel(n_jobs=processes)(delayed(_process_single_xml_to_conll)(
  ##           os.path.join(path_to_data, data_file))
@@ -137,7 +137,7 @@ class PythonParser:
                 self._process_single_xml_with_deps_to_conll(os.path.join(data_sub_dir,data_file))
             else:
                 self._process_single_xml__to_conll(os.path.join(data_sub_dir,data_file))
-        print "<%s> All formatting complete." % current_time()
+        print("<%s> All formatting complete." % current_time())
 
 
 
@@ -224,9 +224,9 @@ class PythonParser:
         os.chdir(self.working_dir)
         self.tags=ast.literal_eval(self.config.get('default','xmltags'))
         strip_command=["java","-mx4g","-jar",self.config.get('default','xmlstripper_jar'),self.data_dir]+self.tags
-        print "<%s> Running xml stripper with command: %s" %(current_time(),str(strip_command))
+        print("<%s> Running xml stripper with command: %s" %(current_time(),str(strip_command)))
         subprocess.call(strip_command)
-        print "<%s> XML stripping complete for path: %s" %(current_time(),self.data_dir)
+        print("<%s> XML stripping complete for path: %s" %(current_time(),self.data_dir))
         self.data_dir=self.data_dir.replace("xml","raw")
 
     def runPipeline(self):
