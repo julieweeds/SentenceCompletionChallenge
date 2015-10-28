@@ -1,7 +1,7 @@
 __author__ = 'juliewe'
 #17/6/2015
 import sys
-from conf import configure
+from .conf import configure
 from nltk.corpus import wordnet as wn
 from nltk.corpus import wordnet_ic as wn_ic
 
@@ -89,7 +89,7 @@ class Analyser:
             try:
                 synsets=wn.synsets(word,pos=apos)
                 if len(synsets)>1:
-                    print word,apos,len(synsets)
+                    print(word,apos,len(synsets))
                     neighs=fields[1:(Analyser.k*2+1)]
                     neighs.reverse()
                     sensedist={}
@@ -111,15 +111,15 @@ class Analyser:
 
     def selectcandidate(self,entry,dist):
 
-        if len(dist.keys())>1 and len(dist.keys())<self.synsetthresh:
+        if len(list(dist.keys()))>1 and len(list(dist.keys()))<self.synsetthresh:
 
             total=0
-            for value in dist.values():
+            for value in list(dist.values()):
                 total+=value
 
             if total>self.totalthresh:
                 minprop=1
-                for value in dist.values():
+                for value in list(dist.values()):
                     prop=value/total
                     if prop<minprop:
                         minprop=prop
@@ -128,8 +128,8 @@ class Analyser:
 
                     totalsim=0
                     count=0
-                    for value1 in dist.keys():
-                        for value2 in dist.keys():
+                    for value1 in list(dist.keys()):
+                        for value2 in list(dist.keys()):
                             if value1 != value2:
                                 totalsim+=self.findsim(value1,value2)
                                 count+=1
@@ -162,17 +162,17 @@ class Analyser:
 
     def displaycandidates(self):
 
-        print "----Starting display of candidates----"
-        for cand in self.candidates.keys():
+        print("----Starting display of candidates----")
+        for cand in list(self.candidates.keys()):
             dist = self.candidates[cand]
-            print cand
-            for synset in dist.keys():
-                print synset.name(),synset.definition(),dist[synset]
+            print(cand)
+            for synset in list(dist.keys()):
+                print(synset.name(),synset.definition(),dist[synset])
                 hypstring=""
                 for hyp in synset.hyponyms():
                     hypstring+=hyp.name()+"\t"
-                print hypstring
-            print "----"
+                print(hypstring)
+            print("----")
 
     def run(self):
         self.processfile()

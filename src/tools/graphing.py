@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 def display_bargraph(adict,title="",max=10):
     #labels are keys
     #values are frequencies
-    print adict
-    adict = filter(adict, max)
-    print adict
-    labels=charcheck(adict.keys())
-    freqs=adict.values()
+    print(adict)
+    adict = list(filter(adict, max))
+    print(adict)
+    labels=charcheck(list(adict.keys()))
+    freqs=list(adict.values())
     fig=plt.figure()
     width=0.75
     ind = np.arange(len(freqs))
@@ -40,12 +40,12 @@ def charcheck(alist):
 def filter(adict,max):
 
 
-    myvalues=adict.values()
+    myvalues=list(adict.values())
     if max<len(myvalues):
         bdict={}
         myvalues.sort(reverse=True)
         cutoff=myvalues[max]
-        for key in adict.keys():
+        for key in list(adict.keys()):
             if adict[key]>cutoff:
                 bdict[key]=adict[key]
 
