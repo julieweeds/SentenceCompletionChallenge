@@ -42,6 +42,7 @@ class Composition:
     filterfreq = 1000
     saliency = 0
     saliencyperpath = False
+    cds_alpha=0.75
 
     headPoS = {"nn": "N", "amod": "N", "mod": "N"}
     depPoS = {"nn": "N", "amod": "J", "mod": "J"}
@@ -94,6 +95,7 @@ class Composition:
             self.filterfreq = Composition.filterfreq
             self.saliency = Composition.saliency
             self.saliencyperpath = Composition.saliencyperpath
+            self.cds_alpha=Composition.cds_alpha
 
             # suffixes for pos
         self.filesbypos = {"N": self.inpath + ".nouns", "V": self.inpath + ".verbs", "J": self.inpath + ".adjs",
@@ -147,8 +149,12 @@ class Composition:
         self.filterfreq = int(self.config.get('default', 'fthreshold'))
         self.comppairfile = self.config.get('default', 'comppairfile')
         self.filterfile = self.config.get('default', 'filterfile')
+        try:
+            self.cds_alpha=float(self.config.get('default','cds_alpha'))
+        except:
+            self.cds_alpha= Composition.cds_alpha
 
-        return
+
 
     # ----HELPER FUNCTIONS
 
@@ -452,7 +458,8 @@ class Composition:
     # ---
     # subsequent functions in pipeline can load pre-calculated column totals using this function
     # ----
-    def load_coltotals(self):
+    def load_coltotals(self, cds=False):
+        #make cds=True to perform context distribution smoothing
         infile = self.selectpos() + self.reducedstring
         if self.normalised and not self.option == "normalise":
             infile += ".filtered.norm"
@@ -464,7 +471,10 @@ class Composition:
                 line = line.rstrip()
                 fields = line.split("\t")
                 if self.normalised or float(fields[1]) > self.filterfreq:
-                    totals[fields[0]] = float(fields[1])
+                    if cds:
+                        totals[fields[0]]=pow(float(fields[1]),self.cds_alpha)
+                    else:
+                        totals[fields[0]] = float(fields[1])
         print("Loaded " + str(len(list(totals.keys()))))
         return totals
 
@@ -718,9 +728,9 @@ class Composition:
                 typetot = float(typetots[self.getpathtype(feature)])  # C<*,p,*>
                 entrytotal = float(entrytots[entry])  # C<w1,*,*>
 
-                if self.smooth_ppmi:
-                    feattot = math.pow(feattot, 0.75)
-                    typetot = math.pow(typetot, 0.75)
+                #if self.smooth_ppmi:
+                #    feattot = math.pow(feattot, 0.75)
+                #    typetot = math.pow(typetot, 0.75)  #INCORRECT calculation - need to raise to power and then sum.
 
                 if self.gof_ppmi:
 
@@ -728,10 +738,11 @@ class Composition:
                 else:
                     pmi = math.log10((freq * typetot) / (feattot * total))
 
-                if pmi > self.ppmithreshold:
+                shifted_pmi = pmi-self.ppmithreshold
+                if shifted_pmi > 0:
                     if self.pp_normal:
-                        pmi = pmi * total / entrytotal
-                    ppmivector[feature] = pmi
+                        shifted_pmi = shifted_pmi * total / entrytotal
+                    ppmivector[feature] = shifted_pmi
 
             done += 1
             if done % 1000 == 0:
@@ -769,7 +780,7 @@ class Composition:
                 suffix += ".sal_" + str(self.saliency)
         outfile = self.selectpos() + self.reducedstring + ".filtered" + suffix
         self.vecsbypos[self.pos] = self.load_vectors()
-        self.feattotsbypos[self.pos] = self.load_coltotals()
+        self.feattotsbypos[self.pos] = self.load_coltotals(cds=self.smooth_ppmi)
         self.totsbypos[self.pos] = self.load_rowtotals()
         self.pathtotsbypos[self.pos] = self.compute_nounpathtotals(self.vecsbypos[self.pos])
         self.typetotsbypos[self.pos] = self.compute_typetotals(self.feattotsbypos[self.pos])
@@ -847,7 +858,7 @@ class Composition:
 
         self.pos = "N"
         self.set_words()
-        self.feattotsbypos[self.pos] = self.load_coltotals()
+        self.feattotsbypos[self.pos] = self.load_coltotals(cds=self.smooth_ppmi)
         self.totsbypos[self.pos] = self.load_rowtotals()
         self.vecsbypos[self.pos] = self.load_vectors()
         self.pathtotsbypos[self.pos] = self.compute_nounpathtotals(self.vecsbypos[self.pos])
@@ -892,7 +903,7 @@ class Composition:
         for pos in ["N", "J"]:
             self.pos = pos
             self.set_words()
-            self.feattotsbypos[pos] = self.load_coltotals()
+            self.feattotsbypos[pos] = self.load_coltotals(cds=self.smooth_ppmi)
             self.totsbypos[pos] = self.load_rowtotals()
             self.vecsbypos[pos] = self.load_vectors()
             self.pathtotsbypos[pos] = self.compute_nounpathtotals(self.vecsbypos[pos])
