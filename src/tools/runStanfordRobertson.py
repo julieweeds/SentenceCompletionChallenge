@@ -1,5 +1,5 @@
 import ConfigParser,os,sys,subprocess
-from .runStanford import PythonParser, current_time
+from runStanford import PythonParser, current_time
 
 __author__ = 'juliewe'
 #run the Stanford pipeline upto tagging and NER, convert to CONLL and then use ADR's dependency parser
