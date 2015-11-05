@@ -1,6 +1,6 @@
 __author__ = 'juliewe'
 
-import configparser,sys,os,ast,subprocess,datetime
+import ConfigParser,sys,os,ast,subprocess,datetime
 import xml.etree.cElementTree as ET
 
 
@@ -10,7 +10,7 @@ def current_time():
 class PythonParser:
 
     def __init__(self,configfile):
-        self.config=configparser.RawConfigParser()
+        self.config=ConfigParser.RawConfigParser()
         self.config.read(configfile)
         self.whereami=self.config.get('default','whereami')
         self.stanford_dir=self.config.get(self.whereami,'stanford_dir')

@@ -1,4 +1,4 @@
-import configparser,os,sys,subprocess
+import ConfigParser,os,sys,subprocess
 from .runStanford import PythonParser, current_time
 
 __author__ = 'juliewe'
@@ -7,7 +7,7 @@ __author__ = 'juliewe'
 class ParsingPipeline(PythonParser):
 
     def __init__(self,configfile):
-        self.config=configparser.RawConfigParser()
+        self.config=ConfigParser.RawConfigParser()
         self.config.read(configfile)
         self.whereami=self.config.get('default','whereami')
         self.stanford_dir=self.config.get(self.whereami,'stanford_dir')
