@@ -23,7 +23,7 @@ def chunkNclean(infile,outdir,chunksize=100):
                 cleanline=matchobj.group(0)
                 outstream.write(cleanline+"\n")
             else:
-                print "Error cleaning line "+index
+                print "Error cleaning line "+str(index)
                 print line
 
 
