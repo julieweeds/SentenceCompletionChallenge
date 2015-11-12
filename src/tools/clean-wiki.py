@@ -11,11 +11,12 @@ def chunkNclean(infile,outdir,chunksize=100):
             if index%chunksize==0:
                 if fileopen:
                     outstream.close()
-                else:
-                    chunkno=(index/chunksize)+1
-                    outfile=outdir+"wiki-chunk"+str(chunkno)
-                    outstream=open(outfile,"w")
-                    fileopen=True
+                    print "Closing file "+outfile
+
+                chunkno=(index/chunksize)+1
+                outfile=outdir+"wiki-chunk"+str(chunkno)
+                outstream=open(outfile,"w")
+                fileopen=True
             line =line.rstrip()
             matchobj=linePATT.match(line)
             if matchobj:
