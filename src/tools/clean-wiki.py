@@ -3,6 +3,7 @@ __author__ = 'juliewe'
 import re
 
 linePATT = re.compile('wikipedia-\d+,\"(.*)\"')
+linePATT2 = re.compile('wikipedia-\d,(.*)')
 
 def chunkNclean(infile,outdir,chunksize=100):
     with open(infile) as instream:
@@ -23,8 +24,13 @@ def chunkNclean(infile,outdir,chunksize=100):
                 cleanline=matchobj.group(0)
                 outstream.write(cleanline+"\n")
             else:
-                print "Error cleaning line "+str(index)
-                print line
+                matchobj=linePATT2.match(line)
+                if matchobj:
+                    cleanline=matchobj.groups()[0]
+                    outstream.write(cleanline+"\n")
+                else:
+                    print "Error cleaning line "+str(index)
+                    print line
 
 
 
